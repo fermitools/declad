@@ -8,6 +8,8 @@ from xrootd_scanner import XRootDScanner
 from lfn2pfn import lfn2pfn
 from datetime import datetime, timezone
 
+from custom import metacat_metadata, sam_metadata, file_scope, dataset_scope, metacat_dataset
+
 from pythreader import version_info as pythreader_version_info
 if pythreader_version_info < (2,15,0):
     raise ModuleNotFoundError("pythreader version 2.15.0 or newer is required")
@@ -57,106 +59,6 @@ class MoverTask(Task, Logged):
                 return last_record
         else:
             return None, None, None
-            
-    CoreAttributes = {
-        "event_count":  "core.event_count",
-        "file_type":    "core.file_type", 
-        "file_format":  "core.file_format",
-        "data_tier":    "core.data_tier", 
-        "data_stream":  "core.data_stream", 
-        "events":       "core.events",
-        "first_event":  "core.first_event_number",
-        "last_event":   "core.last_event_number",
-        "event_count":  "core.event_count",
-        "group":        "core.group",
-        "lum_block_ranges":        "core.lum_block_ranges"
-    }
-    
-    def metacat_metadata(self, desc, metadata):
-        
-        metadata = metadata.copy()      # so that we do not modify the input dictionary in place
-        
-        #
-        # discard native file attributes
-        #
-        metadata.pop("file_size", None)
-        metadata.pop("checksum", None)
-        metadata.pop("file_name", None)
-        metadata.pop("creator", None)           # ignored
-        metadata.pop("user", None)              # ignored
-
-        out = {}
-        #
-        # pop out and convert core attributes
-        #
-        runs_subruns = set()
-        run_type = None
-        runs = set()
-        for run, subrun, rtype in metadata.pop("runs", []):
-            run_type = rtype
-            runs.add(run)
-            runs_subruns.add(100000*run + subrun)
-        out["core.runs_subruns"] = sorted(list(runs_subruns))
-        out["core.runs"] = sorted(list(runs))
-        out["core.run_type"] = run_type
-        app = metadata.pop("application", None)
-        if app:
-            if "name" in app:               out["core.application.name"]    = app["name"]
-            if "version" in app:            out["core.application.version"] = app["version"]
-            if "family" in app:             out["core.application.family"]  = app["family"]
-            if "family" in app and "name" in app:
-                out["core.application"] = app["family"] + "." + app["name"]
-        
-        for k in ("start_time", "end_time"):
-            t = metadata.pop(k, None)
-            if t is not None:
-                if isinstance(t, str):
-                    t = datetime.fromisoformat(t).replace(tzinfo=timezone.utc).timestamp()
-                elif not isinstance(t, (int, float)):
-                    raise ValueError("Unsupported value for %s: %s (%s)" % (k, t, type(t)))
-                out["core."+k] = t
-        #
-        # The rest must be either dimensions or known core attributes
-        #
-        
-        for name, value in metadata.items():
-            if '.' not in name:
-                if name in self.CoreAttributes:
-                    name = self.CoreAttributes[name]
-                elif self.DefaultCategory is None:
-                    raise ValueError("Unknown core metadata parameter: %s = %s for file %s" % (name, value, desc.Name))
-                else:
-                    name = self.DefaultCategory + "." + name
-            if self.LowecaseMetadataNames:
-                name = name.lower()
-            out[name] = value
-        
-        out.setdefault("core.event_count", len(out.get("core.events", [])))
-        return out
-
-    def sam_metadata(self, desc, metadata):
-        out = metadata.copy()
-        out["file_name"] = desc.Name
-        out["user"] = self.SAMConfig.get("user", os.getlogin())
-        ck = out.get("checksum")
-        if ck:
-            if ':' in ck:
-                type, value = ck.split(':', 1)
-            else:
-                type, value = "adler32", ck
-        out["checksum"] = [f"{type}:{value}"]
-        out.pop("events", None)
-        #print("sam_metadata:"), pprint.pprint(out)
-        return out
-
-    def file_scope(self, desc, metadata):
-        return metadata["runs"][0][2]
-
-    def dataset_scope(self, desc, metadata):
-        return self.file_scope(desc, metadata)
-
-    def metacat_dataset(self, desc, metadata):
-        return self.Config["metacat_dataset"]
 
     @property
     def name(self):
@@ -255,11 +157,11 @@ class MoverTask(Task, Logged):
         # Convert to MetaCat format
         #
         try:
-            metacat_meta = self.metacat_metadata(self.FileDesc, metadata)   # massage meta if needed
+            metacat_meta = metacat_metadata(self.FileDesc, metadata, self.Config)   # massage meta if needed
         except Exception as e:
             return self.quarantine(f"Error converting metadata to MetaCat: {e}")
 
-        try:    file_scope = self.file_scope(self.FileDesc, metadata)
+        try:    file_scope = file_scope(self.FileDesc, metadata, self.Config)
         except Exception as e:
             return self.quarantine("can not get file scope. Error: %s. Metadata runs: %s" % (metadata.get("runs"),))
             
@@ -270,7 +172,7 @@ class MoverTask(Task, Logged):
             type, value = adler32_checksum.split(':', 1)
             assert type == "adler32"
             adler32_checksum = value
-        dataset_scope = self.dataset_scope(self.FileDesc, metadata)
+        dataset_scope = dataset_scope(self.FileDesc, metadata, self.Config)
         
 
         # EOS expects URL to have double slashes: root://host:port//path/to/file
@@ -368,7 +270,7 @@ class MoverTask(Task, Logged):
                 else:
                     self.log("already delcared to SAM with the same size/checksum")
             else:
-                sam_metadata = self.sam_metadata(self.FileDesc, metadata)
+                sam_metadata = sam_metadata(self.FileDesc, metadata, self.Config)
                 if do_declare_to_sam:
                     try:    file_id = sclient.declare(sam_metadata)
                     except SAMDeclarationError as e:
@@ -432,8 +334,8 @@ class MoverTask(Task, Logged):
                     else:
                         self.log("already declared to MetaCat")
                 else:
-                    dataset_did = self.metacat_dataset(self.FileDesc, metadata)
-                    metacat_meta = self.metacat_metadata(self.FileDesc, metadata)   # massage meta if needed
+                    dataset_did = self.metacat_dataset(self.FileDesc, metadata, self.Config)
+                    metacat_meta = self.metacat_metadata(self.FileDesc, metadata, self.Config)   # massage meta if needed
                     file_info = {
                             "namespace":    file_scope,
                             "name":         filename,
