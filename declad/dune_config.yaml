@@ -1,0 +1,80 @@
+scanner:
+    type: local
+    server: fndca1.fnal.gov
+    location:           /pnfs/dune/scratch/dunepro/ingest/dropbox/anutau
+    filename_pattern:   "*.root"
+
+    # recursive local scanning:
+    ls_command_template:    find $location -type f -exec stat -c "- %s {}" {} \;
+    parse_re:               ^(?P<type>[df-])\s+(?P<size>\d+)\s+(?P<path>\S+)$
+
+    # non-recursive scanning:
+    # ls_command_template:  ls -l $location
+    # parse_re:             ^(?P<type>[a-z-])\S+\s+\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\s+(?P<size>\d+)\s+(?P<path>\S+)$
+
+    # xrootd non-recursive scanning:
+    # ls_command_template:  xrdfs $server ls -l $location
+    # parse_re:             ^(?P<type>[a-z-])\S+\s+\S+\s+\S+\s+(?P<size>\d+)\s+\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\s+(?P<path>\S+)$
+    
+    # xrootd recursive scanning:
+    # ls_command_template:  xrdfs $server ls -l -R $location
+    # parse_re:             ^(?P<type>[a-z-])\S+\s+\S+\s+\S+\s+(?P<size>\d+)\s+\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\s+(?P<path>\S+)$
+
+    timeout:                600      # seconds
+    interval:    60
+
+low_water_mark: 5
+
+meta_suffix:        .json               # optional
+max_movers: 10                          # default 10
+retry_cooldown: 180                     # file retry interval
+keep_interval: 7200                    # interval to keep file processing log in memory
+transfer_timeout: 300           # default 120
+
+rel_path_function: hash
+log: logs/declad.log
+
+metacat_dataset:    dune:all            # namespace:name
+default_category:   misc                # default metadata category for unexpected uncategorized metadata attrs  
+
+rucio:
+    declare_to_rucio:   yes
+    drop_rse:   DUNE_US_FNAL_DISK_STAGE            # Rucio name of the RSE where the data arrives being copied from the dropbox
+    target_rses:                # RSEs to create replication rule to
+    - FNAL_DCACHE
+    dataset_did_template: "%(run_type)s:%(run_type)s_%(run_number)s"          # Python %-operation template, applied to the file metadata dict
+
+# the following are used for xrtood transfers/downloads, etc. paths are in xrtood space
+source_server:        fndca1.fnal.gov                 
+destination_server:   fndca1.fnal.gov
+source_root_path:       /pnfs/fnal.gov/usr/dune/scratch/dunepro/ingest/dropbox/anutau
+destination_root_path:  /pnfs/fnal.gov/usr/dune/persistent/staging          
+
+delete_command_template:        "xrdfs $server rm $path"
+create_dirs_command_template:   "xrdfs $server mkdir -p $path"
+copy_command_template:          "xrdcp --force --silent --debug 2 --tpc delegate first $src_url $dst_url"
+download_command_template:      "xrdcp --force --silent root://$server/$src_path $dst_path"
+quarantine_location:            /dune/scratch/dunepro/ingest/quarantine
+
+metacat_url:    https://metacat.fnal.gov:9443/dune_meta_prod/app
+rucio_url:      https://dune-rucio.fnal.gov
+
+sam_location_template: dcache:/pnfs/dune/persistent/staging/$dst_rel_dir
+
+samweb:
+    user:    dunepro
+    url:     https://samweb.fnal.gov:8483/sam/dune/api
+    cert:    /opt/dunepro/dunepro.Production.proxy 
+    key:     /opt/dunepro/dunepro.Production.proxy
+
+web_gui:
+    port: 8080
+    site_title: Web site title
+    prefix: /declad_demo
+    
+graphite:
+        host: fifemondata.fnal.gov
+        port: 2004
+        namespace: fts.dune.acd-srv03.fnal.gov 
+        interval: 10
+        bin: 60
