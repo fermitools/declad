@@ -7,10 +7,11 @@ TAR_DIR = /tmp/$(USER)
 TAR_FILE = $(TAR_DIR)/$(PRODUCT)_$(VERSION).tar
 
 
-FILES = config.py mover.py samweb_client.py tools.py web_server.py lfn2pfn.py \
-	declad.py historydb.py metacat_client.py rucio_client.py scanner.py xrootd_scanner.py graphite_interface.py \
-	file_descriptor.py
-
+FILES = config.py declad.py file_descriptor.py fts3client.py \
+        graphite_interface.py historydb.py lfn2pfn.py local_scanner.py \
+        metacat_client.py mover.py rucio_client.py samweb_client.py \
+        scanner.py tools.py version.py web_server.py xrootd_scanner.py \
+        config_sample.yaml meta_sample.json
 
 # - not needed as we are moving EOS to EOS using xrootd fts3client.py context.py request.py
 
