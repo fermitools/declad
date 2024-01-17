@@ -31,6 +31,7 @@ build: $(BUILD_DIR) $(TEMPLATES_DIR)
 	echo 'Version="$(VERSION)"' > $(BUILD_DIR)/version.py
 	cp $(FILES) $(BUILD_DIR)
 	cp -R logs $(BUILD_DIR)
+	cp -R custom $(BUILD_DIR)
 	cp templates/*.html $(TEMPLATES_DIR)
 
 clean:
