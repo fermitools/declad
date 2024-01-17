@@ -34,6 +34,7 @@ build: $(BUILD_DIR) $(TEMPLATES_DIR)
 	cp -R logs $(BUILD_DIR)
 	cp -R custom $(BUILD_DIR)
 	cp templates/*.html $(TEMPLATES_DIR)
+	chmod +x $(BUILD_DIR)/declad.py
 
 clean:
 	rm -rf $(TAR_FILE) $(BUILD_DIR)
