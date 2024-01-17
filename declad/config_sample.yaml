@@ -17,7 +17,7 @@ keep_interval: 86400                    # interval to keep file processing log i
 metacat_dataset:    dune:all                # namespace:name
 rucio_dataset_did_template: "%(run_type)s:%(run_type)s_%(run_number)s"          # Python %-operation template, applied to the file metadata dict
 
-sourse_server:        root://dropbox.host:port                 
+source_server:        root://dropbox.host:port                 
 destination_server:   root://dest.host:port
 destination_root_path:  /path/to/top/of/dest/namespace          # absolute
 
