@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import pprint, time, threading, signal
 from mover import Manager
 from scanner import Scanner

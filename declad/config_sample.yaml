@@ -1,5 +1,6 @@
 scanner:
-    server: host.domain:port
+    type:       local
+    server:     host.domain:port
     location:   /absolute/path/to/dropbox
     filename_pattern:   "*.hdf5"
     # meta_suffix:        .json           # optional
@@ -7,6 +8,7 @@ scanner:
     parse_re:               "^(?P<type>[a-z-])\S+\s+\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\s+(?P<size>\d+)\s+(?P<path>\S+)$"
     timeout:                30      # seconds
 
+log: logs/declad.log
 max_movers: 10                          # default 10
 queue_capacity: 100                     # stop scanning for input files if the queue is backlogged. default - no limit
 retry_cooldown: 3600                    # file retry interval
