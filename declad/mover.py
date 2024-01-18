@@ -463,10 +463,15 @@ class MoverTask(Task, Logged):
             src_path = self.FileDesc.path(self.SrcRootPath)
             meta_path = src_path + self.MetaSuffix
             qmeta_path = self.QuarantineLocation + "/" + self.FileDesc.Name + self.MetaSuffix
-            cmd = "xrdfs %s mv %s %s" % (
-                self.FileDesc.Server,
-                meta_path, qmeta_path
-            )
+            if self.FileDesc.Server is None:
+                cmd = "mv %s %s" % (
+                    meta_path, qmeta_path
+                )
+            else:
+                cmd = "xrdfs %s mv %s %s" % (
+                    self.FileDesc.Server,
+                    meta_path, qmeta_path
+                )
             ret, output = runCommand(cmd, self.TransferTimeout, self.debug)
             if ret:
                 return self.failed("Quarantine for metadata file %s failed: %s" % (self.FileDesc.Name + self.MetaSuffix, output))
@@ -474,10 +479,15 @@ class MoverTask(Task, Logged):
             # quarantine the data file
             path = src_path
             qpath = self.QuarantineLocation + "/" + self.FileDesc.Name
-            cmd = "xrdfs %s mv %s %s" % (
-                self.FileDesc.Server,
-                path, qpath
-            )
+            if self.FileDesc.Server is None:
+                cmd = "mv %s %s" % (
+                    path, qpath
+                )
+            else:
+                cmd = "xrdfs %s mv %s %s" % (
+                    self.FileDesc.Server,
+                    path, qpath
+                )
             ret, output = runCommand(cmd, self.TransferTimeout, self.debug)
             if ret:
                 return self.failed("Quarantine for data file %s failed: %s" % (self.FileDesc.Name, output))
