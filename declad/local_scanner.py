@@ -66,6 +66,9 @@ class LocalScanner(PyThread, Logged):
                             self.log(f"Unknown directory entry type '{t}' in: {l} -- ignored")
         return status, error, files, dirs
 
+    def ls_input(self):
+        return self.ls_files()
+
     def ls_files(self):
         status, error, files, _ = self.do_ls(self.Location)
         if status:
