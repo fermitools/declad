@@ -8,7 +8,7 @@ from xrootd_scanner import XRootDScanner
 from lfn2pfn import lfn2pfn
 from datetime import datetime, timezone
 
-from custom import metacat_metadata, sam_metadata, file_scope, dataset_scope, metacat_dataset
+from custom import metacat_metadata, sam_metadata, get_file_scope, get_dataset_scope, metacat_dataset
 
 from pythreader import version_info as pythreader_version_info
 if pythreader_version_info < (2,15,0):
@@ -161,9 +161,9 @@ class MoverTask(Task, Logged):
         except Exception as e:
             return self.quarantine(f"Error converting metadata to MetaCat: {e}")
 
-        try:    file_scope = file_scope(self.FileDesc, metadata, self.Config)
+        try:    file_scope = get_file_scope(self.FileDesc, metadata, self.Config)
         except Exception as e:
-            return self.quarantine("can not get file scope. Error: %s. Metadata runs: %s" % (metadata.get("runs"),))
+            return self.quarantine("can not get file scope. Error: %s. Metadata runs: %s" % (e.what(), metadata.get("runs"),))
             
         did = file_scope + ":" + filename
             
@@ -172,7 +172,7 @@ class MoverTask(Task, Logged):
             type, value = adler32_checksum.split(':', 1)
             assert type == "adler32"
             adler32_checksum = value
-        dataset_scope = dataset_scope(self.FileDesc, metadata, self.Config)
+        dataset_scope = get_dataset_scope(self.FileDesc, metadata, self.Config)
         
 
         # EOS expects URL to have double slashes: root://host:port//path/to/file
@@ -194,7 +194,10 @@ class MoverTask(Task, Logged):
         dest_data_path = dest_root_path + "/" + dest_rel_path
         dest_dir_abs_path = dest_data_path.rsplit("/", 1)[0]  
         data_dst_url = "root://" + self.DestServer + "/" + dest_data_path     
-        data_src_url = "root://" + self.SourceServer + "/" + src_data_path
+        if self.SourceServer is None or self.SourceServer == "localhost":
+            data_src_url = "file:///" + src_data_path
+        else:
+            data_src_url = "root://" + self.SourceServer + "/" + src_data_path
         
         #
         # check if the dest data file exists and has correct size
@@ -334,8 +337,8 @@ class MoverTask(Task, Logged):
                     else:
                         self.log("already declared to MetaCat")
                 else:
-                    dataset_did = self.metacat_dataset(self.FileDesc, metadata, self.Config)
-                    metacat_meta = self.metacat_metadata(self.FileDesc, metadata, self.Config)   # massage meta if needed
+                    dataset_did = metacat_dataset(self.FileDesc, metadata, self.Config)
+                    metacat_meta = metacat_metadata(self.FileDesc, metadata, self.Config)   # massage meta if needed
                     file_info = {
                             "namespace":    file_scope,
                             "name":         filename,
@@ -345,7 +348,7 @@ class MoverTask(Task, Logged):
                         }
                     if file_id is not None:
                         file_info["fid"] = str(file_id)
-                    #print("about to call mclient.declare_files with file_info:", file_info)
+                    self.debug("about mclient.declare_files with file_info: %s" % repr(file_info))
                     try:    
                         file_info = mclient.declare_file(
                             fid=file_id, namespace=file_scope, name=filename, 
