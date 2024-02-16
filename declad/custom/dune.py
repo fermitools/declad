@@ -79,6 +79,11 @@ def sam_metadata(desc, metadata, config):
     out["file_name"] = desc.Name
     out["user"] = config.get("samweb", {}).get("user", os.getlogin())
     ck = out.get("checksum")
+
+    # take either "checksum" : [ "adler32:xxx" ] or "checksum": "adler32:xxx" 
+    if isisntance(ck, list):
+        ck = list[0]
+
     if ck:
         if ':' in ck:
             type, value = ck.split(':', 1)
@@ -93,7 +98,7 @@ def get_file_scope(desc, metadata, config):
     return metadata["runs"][0][2]
 
 def get_dataset_scope(desc, metadata, config):
-    return file_scope(desc, metadata, config)
+    return get_file_scope(desc, metadata, config)
 
 def metacat_dataset(desc, metadata, config):
     return config["metacat_dataset"]
