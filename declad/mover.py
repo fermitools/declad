@@ -11,8 +11,8 @@ from datetime import datetime, timezone
 from custom import metacat_metadata, sam_metadata, get_file_scope, get_dataset_scope, metacat_dataset
 
 from pythreader import version_info as pythreader_version_info
-if pythreader_version_info < (2,15,0):
-    raise ModuleNotFoundError("pythreader version 2.15.0 or newer is required")
+#if pythreader_version_info < (2,15,0):
+#    raise ModuleNotFoundError("pythreader version 2.15.0 or newer is required")
 
 class MoverTask(Task, Logged):
     

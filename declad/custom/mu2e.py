@@ -1,5 +1,5 @@
 
-import metadata_converter 
+import custom.metadata_converter 
 
 mc = metadata_converter.MetadataConverter("mu2e")
 
@@ -22,10 +22,10 @@ def sam_metadata(desc, metadata, config):
     #print("sam_metadata:"), pprint.pprint(out)
     return out
 
-def file_scope(desc, metadata, config):
+def get_file_scope(desc, metadata, config):
     return metadata["runs"][0][2]
 
-def dataset_scope(desc, metadata, config):
+def get_dataset_scope(desc, metadata, config):
     return file_scope(desc, metadata, config)
 
 def metacat_dataset(desc, metadata, config):
