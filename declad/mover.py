@@ -183,10 +183,12 @@ class MoverTask(Task, Logged):
         if rel_path_function == "hash":
             dest_rel_path = self.destination_rel_path(file_scope, self.FileDesc, metacat_meta)
         elif rel_path_function == "template":
+            hstr = hashlib.md5(('%s:%s' % (file_scope, filename)).encode('utf-8')).hexdigest()
             meta_dict = metacat_meta.copy()
             meta_dict.update(dict(
                 scope = file_scope,
-                name = filename
+                name = filename,
+                hash = "%s/%s" % (hstr[0:2], hstr[2:4]),
             ))
             dest_rel_path = self.Config["rel_path_pattern"] % meta_dict
         else:
