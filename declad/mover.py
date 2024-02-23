@@ -382,6 +382,14 @@ class MoverTask(Task, Logged):
 
                 # create dataset if does not exist
                 dataset_scope, dataset_name = self.undid(self.rucio_dataset_did(self.FileDesc, metadata))
+
+                if mclient is not None:
+                    # create in metacat first...
+                    try:
+                        mclient.create_dataset(f"{dataset_scope}:{dataset_name}")
+                    except metacat_client.MCServerError:
+                        pass
+
                 try:    rclient.add_did(dataset_scope, dataset_name, "DATASET")
                 except DataIdentifierAlreadyExists:
                     pass

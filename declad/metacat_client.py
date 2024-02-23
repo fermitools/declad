@@ -1,4 +1,4 @@
-from metacat.webapi import MetaCatClient
+from metacat.webapi import MetaCatClient, MCServerError
 
 def client(config):
     if "metacat_url" in config:
