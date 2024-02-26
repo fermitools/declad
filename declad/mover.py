@@ -168,6 +168,9 @@ class MoverTask(Task, Logged):
         did = file_scope + ":" + filename
             
         adler32_checksum = metadata["checksum"]
+        if isinstance(adler32_checksum, list):
+             adler32_checksum = adler32_checksum[0]
+
         if ':' in adler32_checksum:
             type, value = adler32_checksum.split(':', 1)
             assert type == "adler32"
@@ -192,6 +195,11 @@ class MoverTask(Task, Logged):
                 md5hash = "%s/%s" % (mhstr[0:2], mhstr[2:4]),
                 sha256hash = "%s/%s" % (shstr[0:2], shstr[2:4]),
             ))
+            # push metadata layer up...
+            if "metadata" in meta_dict:
+                meta_dict.update(meta_dict["metadata"])
+            
+            self.log(f'converting {self.Config["rel_path_pattern"]} with {repr(meta_dict)}')
             dest_rel_path = self.Config["rel_path_pattern"] % meta_dict
         else:
             raise ValueError(f"Unknown relative path function {rel_path_function}. Accepted: hash or template")
@@ -272,19 +280,22 @@ class MoverTask(Task, Logged):
                     return self.quarantine("Existing SAM metadata does not contain file_id")
                 sam_size = existing_sam_meta.get("file_size")
                 sam_adler32 = dict(ck.split(':', 1) for ck in existing_sam_meta.get("checksum", [])).get("adler32").lower()
+                if isinstance(adler32_checksum, list):
+                     adler32_checksum = adler32_checksum[0]
+                adler32_checksum = adler32_checksum.replace("adler32:","")
                 if sam_size != file_size or adler32_checksum != sam_adler32:
-                    return self.quarantine("already declared to SAM with different size and/or checksum")
+                    return self.quarantine("already declared to SAM with different size and/or checksum file_size %s vs sam %s cheksum %s vs sam %s  " % (file_size, sam_size, adler32_checksum, sam_adler32))
                 else:
                     self.log("already delcared to SAM with the same size/checksum")
             else:
-                sam_metadata = sam_metadata(self.FileDesc, metadata, self.Config)
+                s_metadata = sam_metadata(self.FileDesc, metadata, self.Config)
                 if do_declare_to_sam:
-                    try:    file_id = sclient.declare(sam_metadata)
+                    try:    file_id = sclient.declare(s_metadata)
                     except SAMDeclarationError as e:
                         return self.failed(str(e))
                     self.log("declared to SAM. File id:", file_id)
                 else:
-                    self.debug("would declare to SAM:", json.dumps(sam_metadata, indent=4, sort_keys=True))
+                    self.debug("would declare to SAM:", json.dumps(s_metadata, indent=4, sort_keys=True))
 
             #
             # Add SAM location
@@ -352,7 +363,7 @@ class MoverTask(Task, Logged):
                         }
                     if file_id is not None:
                         file_info["fid"] = str(file_id)
-                    self.debug("about mclient.declare_files with file_info: %s" % repr(file_info))
+                    self.debug("about to mclient.declare_files dataset_did %s with file_info: %s" % (dataset_did, repr(file_info)))
                     try:    
                         file_info = mclient.declare_file(
                             fid=file_id, namespace=file_scope, name=filename, 
@@ -387,7 +398,7 @@ class MoverTask(Task, Logged):
                     # create in metacat first...
                     try:
                         mclient.create_dataset(f"{dataset_scope}:{dataset_name}")
-                    except metacat_client.MCServerError:
+                    except metacat_client.AlreadyExistsError:
                         pass
 
                 try:    rclient.add_did(dataset_scope, dataset_name, "DATASET")
