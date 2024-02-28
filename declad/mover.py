@@ -170,7 +170,7 @@ class MoverTask(Task, Logged):
         did = file_scope + ":" + filename
             
         adler32_checksum = metadata["checksum"]
-        if isinstance(adler32_checksum, list):
+        if isinstance(adler32_checksum, list) and adler32_checksum:
              adler32_checksum = adler32_checksum[0]
 
         if ':' in adler32_checksum:
@@ -282,7 +282,7 @@ class MoverTask(Task, Logged):
                     return self.quarantine("Existing SAM metadata does not contain file_id")
                 sam_size = existing_sam_meta.get("file_size")
                 sam_adler32 = dict(ck.split(':', 1) for ck in existing_sam_meta.get("checksum", [])).get("adler32").lower()
-                if isinstance(adler32_checksum, list):
+                if isinstance(adler32_checksum, list) and adler32_checksum:
                      adler32_checksum = adler32_checksum[0]
                 adler32_checksum = adler32_checksum.replace("adler32:","")
                 if sam_size != file_size or adler32_checksum != sam_adler32:
@@ -386,10 +386,7 @@ class MoverTask(Task, Logged):
         #
         rclient = rucio_client.client(self.RucioConfig)
         do_declare_to_rucio = self.RucioConfig.get("declare_to_rucio", True)
-        if (rclient is not None and 
-            f"{dataset_scope}:{dataset_name}" != self.last_created_dataset):
-
-            self.last_created_dataset = f"{dataset_scope}:{dataset_name}" 
+        if rclient is not None:
 
             if do_declare_to_rucio:
                 from rucio.common.exception import DataIdentifierAlreadyExists, DuplicateRule, FileAlreadyExists
@@ -400,32 +397,34 @@ class MoverTask(Task, Logged):
                 # create dataset if does not exist
                 dataset_scope, dataset_name = self.undid(self.rucio_dataset_did(self.FileDesc, metadata))
 
-                if mclient is not None:
-                    # create in metacat first...
-                    try:
-                        mclient.create_dataset(f"{dataset_scope}:{dataset_name}")
-                    except metacat_client.AlreadyExistsError:
-                        pass
+                if f"{dataset_scope}:{dataset_name}" != self.last_created_dataset:
+                    self.last_created_dataset = f"{dataset_scope}:{dataset_name}" 
+                    if mclient is not None:
+                        # create in metacat first...
+                        try:
+                            mclient.create_dataset(f"{dataset_scope}:{dataset_name}")
+                        except metacat_client.AlreadyExistsError:
+                            pass
 
-                try:    rclient.add_did(dataset_scope, dataset_name, "DATASET")
-                except DataIdentifierAlreadyExists:
-                    pass
-                except Exception as e:
-                    return self.quarantine(f"Error in creating Rucio dataset {dataset_scope}:{dataset_name}: {e}")
-                
-                else:
-                    self.log(f"Rucio dataset {dataset_scope}:{dataset_name} created")
-
-                for target_rse in self.RucioConfig["target_rses"]:
-                    try:
-                        rclient.add_replication_rule([{"scope":dataset_scope, "name":dataset_name}], 1, target_rse)
-                    except DuplicateRule:
+                    try:    rclient.add_did(dataset_scope, dataset_name, "DATASET")
+                    except DataIdentifierAlreadyExists:
                         pass
                     except Exception as e:
-                        return self.quarantine(f"Error in creating Rucio replication rule -> {target_rse}: {e}")
+                        return self.quarantine(f"Error in creating Rucio dataset {dataset_scope}:{dataset_name}: {e}")
+                    
                     else:
-                        self.log(f"replication rule -> {target_rse} created")
-            
+                        self.log(f"Rucio dataset {dataset_scope}:{dataset_name} created")
+
+                    for target_rse in self.RucioConfig["target_rses"]:
+                        try:
+                            rclient.add_replication_rule([{"scope":dataset_scope, "name":dataset_name}], 1, target_rse)
+                        except DuplicateRule:
+                            pass
+                        except Exception as e:
+                            return self.quarantine(f"Error in creating Rucio replication rule -> {target_rse}: {e}")
+                        else:
+                            self.log(f"replication rule -> {target_rse} created")
+                
                 # declare file replica to Rucio
                 drop_rse = self.RucioConfig["drop_rse"]
                 rclient.add_replica(drop_rse, file_scope, filename, file_size, adler32_checksum)
