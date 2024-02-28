@@ -1,4 +1,5 @@
 from metacat.webapi import MetaCatClient
+from metacat.webapi.webapi import AlreadyExistsError
 
 def client(config):
     if "metacat_url" in config:

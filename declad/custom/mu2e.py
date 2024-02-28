@@ -1,10 +1,14 @@
 
 import custom.metadata_converter 
+import os
+import sys
 
 mc = metadata_converter.MetadataConverter("mu2e")
 
 def metacat_metadata(desc, metadata, config):
-    return mc.convert_all_sam_mc(metadata)  
+    namespace = config.get("metacat_namespace")
+    res = mc.convert_all_sam_mc(metadata, namespace)  
+    return res["metadata"]
 
 def sam_metadata(desc, metadata, config):
     out = metadata.copy()
@@ -17,17 +21,18 @@ def sam_metadata(desc, metadata, config):
             type, value = ck.split(':', 1)
         else:
             type, value = "adler32", ck
-    out["checksum"] = [f"{type}:{value}"]
+        out["checksum"] = [f"{type}:{value}"]
     out.pop("events", None)
     #print("sam_metadata:"), pprint.pprint(out)
     return out
 
 def get_file_scope(desc, metadata, config):
-    return metadata["runs"][0][2]
+    #return metadata["runs"][0][2]
+    return "mu2epro"
 
 def get_dataset_scope(desc, metadata, config):
-    return file_scope(desc, metadata, config)
+    return get_file_scope(desc, metadata, config)
 
 def metacat_dataset(desc, metadata, config):
-    return config["metacat_dataset"]
+    return config.get("metacat_dataset")
 
