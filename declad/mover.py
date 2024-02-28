@@ -18,6 +18,8 @@ class MoverTask(Task, Logged):
     
     RequiredMetadata = ["checksum", "file_size", "runs"]
     DefaultMetaSuffix = ".json"
+    # remember last dataset we created in to reduce repeats
+    last_created_dataset = None 
     
     def __init__(self, config, filedesc):
         Task.__init__(self, filedesc)
@@ -384,7 +386,11 @@ class MoverTask(Task, Logged):
         #
         rclient = rucio_client.client(self.RucioConfig)
         do_declare_to_rucio = self.RucioConfig.get("declare_to_rucio", True)
-        if rclient is not None:
+        if (rclient is not None and 
+            f"{dataset_scope}:{dataset_name}" != self.last_created_dataset):
+
+            self.last_created_dataset = f"{dataset_scope}:{dataset_name}" 
+
             if do_declare_to_rucio:
                 from rucio.common.exception import DataIdentifierAlreadyExists, DuplicateRule, FileAlreadyExists
                 #print(rclient.whoami())
@@ -426,6 +432,12 @@ class MoverTask(Task, Logged):
                 self.log(f"File replica declared in drop rse {drop_rse}")
 
                 # add the file to the dataset
+                if mclient is not None:
+                    try:
+                        mclient.add_files(f"{dataset_scope}:{dataset_name}",[{"namespace":file_scope, "name": filename}])
+                    except metacat_client.AlreadyExistsError:
+                        self.log("File was already attached to the MetaCat dataset")
+                        pass
                 try:
                     rclient.attach_dids(dataset_scope, dataset_name, [{"scope":file_scope, "name":filename}])
                 except FileAlreadyExists:
