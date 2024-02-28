@@ -30,10 +30,19 @@ def convert_checksums_mc_sam(checksums):
         res.append( "%s:%s" % (ctype, checksums[ctype]))
     return res
 
+g_experiment = None
+
+# constants for run/subrun combination
+run_scale_factors = { 
+    "mu2e": 1000000, 
+    "dune": 1000000, 
+    "hypot": 1000,
+}
+
 def convert_runs_sam_mc(runs):
     """ special case: run/subrun  number conversion"""
     res = []
-    m = self.run_scale_factor[self.exp]
+    m = run_scale_factor[g_experiment]
     for r, sr, typ in runs:
         res.append(m * r + sr)
     return res
@@ -42,7 +51,7 @@ def convert_runs_sam_mc(runs):
 def convert_runs_mc_sam( runs):
     """ special case: run/subrun  number conversion"""
     res = []
-    m = self.run_scale_factor[self.exp]
+    m = run_scale_factor[g_experiment]
     for r in runs:
         rn = r / m
         sr = r % m
@@ -57,7 +66,7 @@ def convert_parents_sam_mc( parents):
         res.append( {
             "fid":  str(i["file_id"]),
             "name": i["file_name"],
-            "namespace": self.experiment,  # XXX possible bug, what namespace?
+            "namespace": g_experiment,  # XXX possible bug, what namespace?
         })
     return res
 
@@ -72,10 +81,13 @@ def convert_parents_mc_sam( parents):
     return res
 
 
+
 class MetadataConverter:
     """ converts metadata between MetaCat and Sam"""
     def __init__(self, experiment):
+        global g_experiment
         self.experiment = experiment
+        g_experiment = experiment
         #
         # conversion table:
         #
@@ -294,12 +306,6 @@ class MetadataConverter:
         }
         self.build_inverse()
 
-        # constants for run/subrun combination
-        self.run_scale_factors = { 
-            "mu2e": 1000000, 
-            "dune": 1000000, 
-            "hypot": 1000,
-        }
 
     def build_inverse(self):
         """ build the inverse mapping from the forward one"""
