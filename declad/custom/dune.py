@@ -1,4 +1,6 @@
 CoreAttributes = {
+    "start_time":   "core.start_time",
+    "end_time":     "core.end_time",
     "event_count":  "core.event_count",
     "file_type":    "core.file_type", 
     "file_format":  "core.file_format",

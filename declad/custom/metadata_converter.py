@@ -42,7 +42,7 @@ run_scale_factors = {
 def convert_runs_sam_mc(runs):
     """ special case: run/subrun  number conversion"""
     res = []
-    m = run_scale_factor[g_experiment]
+    m = run_scale_factors[g_experiment]
     for r, sr, typ in runs:
         res.append(m * r + sr)
     return res
@@ -51,7 +51,7 @@ def convert_runs_sam_mc(runs):
 def convert_runs_mc_sam( runs):
     """ special case: run/subrun  number conversion"""
     res = []
-    m = run_scale_factor[g_experiment]
+    m = run_scale_factors[g_experiment]
     for r in runs:
         rn = r / m
         sr = r % m
@@ -93,11 +93,14 @@ class MetadataConverter:
         #
         self.conversion_mc_sam = {
             "mu2e": {
-                "name": "file_name",
+                # ordered to match rlc's spreadsheet...
                 "fid": "file_id",
+
+                "name": "file_name",
                 "size": "file_size",
                 "checksums": "checksum",
                 "parents": "parents",
+
                 "creator": "user",
                 "created_timestamp": "create_date",
                 "updated_by": "update_user",
@@ -105,6 +108,8 @@ class MetadataConverter:
 
                 "metadata:dh.type":  "file_type",
                 "metadata:dh.status":  "content_status",
+
+                "metadata:rs.runs":          "runs",
 
                 "metadata:dh.dataset":       "dh.dataset",
                 "metadata:fn.tier":          "data_tier",
@@ -114,11 +119,10 @@ class MetadataConverter:
                 "metadata:fn.sequencer":     "dh.sequencer",
                 "metadata:fn.format":        "file_format",
 
-                "metadata:rs.first_run":     "dh.first_run_event",
-                "metadata:rs.last_run":      "dh.last_run_event",
+                "metadata:rs.first_run":     "dh.first_run_subrun",
+                "metadata:rs.last_run":      "dh.last_run_subrun",
                 "metadata:rs.first_subrun":  "dh.first_subrun",
                 "metadata:rs.last_subrun":   "dh.last_subrun",
-                "metadata:rs.runs":          "Runs",
                 "metadata:rse.first_run":    "dh.first_run_event",
                 "metadata:rse.last_run":     "dh.last_run_event",
                 "metadata:rse.first_subrun": "dh.first_subrun_event",
@@ -126,19 +130,24 @@ class MetadataConverter:
                 "metadata:rse.first_event":  "dh.first_event",
                 "metadata:rse.last_event":   "dh.last_event",
                 "metadata:rse.nevent":       "event_count",
+
+                "metadata:gen.count": "dh.gencount",
+
+                "metadata:app.family":  "family",
+                "metadata:app.name":    "name",
+                "metadata:app.version": "version",
+
+                # not mentioned in spreadsheet, but present in sampled files
+
                 "metadata:job.cpu":          "job.cpu",
                 "metadata:job.disk":         "job.disk",
                 "metadata:job.maxres":       "job.maxres",
                 "metadata:job.node":         "job.node",
                 "metadata:job.site":         "job.site",
-                "metadata:mc.generator_type":"mc.generator_type",
+                "metadata:mc.generator_type":  "mc.generator_type",
                 "metadata:mc.primary_particle":"mc.primary_particle",
                 "metadata:mc.simulation_stage":"mc.simulation_stage",
 
-                "metadata:gen.count": "dh.gencount",
-                "metadata:app.family": "family",
-                "metadata:app.name": "name",
-                "metadata:app.version": "version",
             },
             "hypot": {
                 "name": "file_name",
@@ -158,6 +167,7 @@ class MetadataConverter:
                 "metadata:app.family": "family",
                 "metadata:app.name":   "name",
                 "metadata:app.version": "version",
+                "metadata:core.runs":          "runs",
             },
             "dune": {
                 "name": "file_name",
@@ -205,6 +215,7 @@ class MetadataConverter:
                 "metadata:core.first_event_number": "first_event_number",
                 "metadata:core.last_event_number":  "last_event_number",
                 "metadata:core.run_type":           "run_type",
+                "metadata:core.runs":               "runs",
                 "metadata:core.application:family": "family",
                 "metadata:core.application:name":   "name",
                 "metadata:core.application:version":"version",
