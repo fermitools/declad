@@ -15,6 +15,10 @@ CoreAttributes = {
 }
 
 def metacat_metadata(desc, metadata, config):
+
+    if ("size" in metadata and "metadata" in metadata)
+        # already is metacat metadata, just return the metadata part
+        return metadata["metadata"]
     
     metadata = metadata.copy()      # so that we do not modify the input dictionary in place
     
@@ -92,6 +96,14 @@ def sam_metadata(desc, metadata, config):
         else:
             type, value = "adler32", ck
     out["checksum"] = [f"{type}:{value}"]
+    if "metadata" in out:
+        for k,v in core_attributes:
+            if out["metadata"].get(v):
+                out[k] = out["metadata"].get(v)
+        out["file_size"] = out["size"]
+        out.pop("size")
+        out.pop("metadata")
+        out.pop("checksums")
     out.pop("events", None)
     #print("sam_metadata:"), pprint.pprint(out)
     return out

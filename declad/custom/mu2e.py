@@ -6,12 +6,20 @@ import sys
 mc = metadata_converter.MetadataConverter("mu2e")
 
 def metacat_metadata(desc, metadata, config):
+    if ("size" in metadata and "metadata" in metadata)
+        # already is metacat metadata, just return the metadata part
+        return metadata["metadata"]
+    
     namespace = config.get("metacat_namespace")
     res = mc.convert_all_sam_mc(metadata, namespace)  
     return res["metadata"]
 
 def sam_metadata(desc, metadata, config):
-    out = metadata.copy()
+    if ("metadata" in metadata):
+        # is new style metadata..
+        out = mc.convert_all_mc_sam(metadata)
+    else:
+        out = metadata.copy()
     out["file_name"] = desc.Name
     out["user"] = config.get("samweb", {}).get("user", os.getlogin())
     ck = out.get("checksum")

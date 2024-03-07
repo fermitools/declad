@@ -16,7 +16,7 @@ from pythreader import version_info as pythreader_version_info
 
 class MoverTask(Task, Logged):
     
-    RequiredMetadata = ["checksum", "file_size", "runs"]
+    RequiredMetadata = [["checksum","checksums"], ["file_size","size"], ["runs","runs"]]
     DefaultMetaSuffix = ".json"
     # remember last dataset we created in to reduce repeats
     last_created_dataset = None 
@@ -68,8 +68,13 @@ class MoverTask(Task, Logged):
         
     def rucio_dataset_did(self, desc, metadata):
         meta = metadata.copy()
-        meta["run_number"] = meta["runs"][0][0]
-        meta["run_type"] = meta["runs"][0][2]
+        if isinstance(meta["runs"][0], list):
+            # if it is sam style run list, get run number and type
+            meta["run_number"] = meta["runs"][0][0]
+            meta["run_type"] = meta["runs"][0][2]
+        else:
+            # if it is metacat style run list, get run number
+            meta["run_number"] = meta["runs"][0] / 1000000
         return self.RucioConfig["dataset_did_template"] % meta
 
     def undid(self, did):
@@ -140,14 +145,14 @@ class MoverTask(Task, Logged):
         # strip whitespace from around the attribute names
         metadata = {key.strip():value for key, value in metadata.items()}
 
-        for x in self.RequiredMetadata:
-            if x not in metadata:
+        for x,y in self.RequiredMetadata:
+            if x not in metadata and y not in metadata:
                 return self.quarantine(f"{x} missing from metadata")
 
         #
         # Check file size
         #
-        file_size = metadata["file_size"]
+        file_size = metadata.get("file_size", metadata.get("size"))
 
         if not isinstance(file_size, int) or file_size <= 0:
             return self.quarantine(f"Invalid file size in metadata: {file_size}")
@@ -169,7 +174,10 @@ class MoverTask(Task, Logged):
             
         did = file_scope + ":" + filename
             
-        adler32_checksum = metadata["checksum"]
+        if "checksum" in metadata:
+            adler32_checksum = metadata["checksum"]
+        if "checksums" in metadata:
+            adler32_checksum = metadata["checksums"]["adler32"]
         if isinstance(adler32_checksum, list) and adler32_checksum:
              adler32_checksum = adler32_checksum[0]
 
@@ -282,6 +290,7 @@ class MoverTask(Task, Logged):
                 except KeyError:
                     return self.quarantine("Existing SAM metadata does not contain file_id")
                 sam_size = existing_sam_meta.get("file_size")
+
                 sam_adler32 = dict(ck.split(':', 1) for ck in existing_sam_meta.get("checksum", [])).get("adler32").lower()
                 if isinstance(adler32_checksum, list) and adler32_checksum:
                      adler32_checksum = adler32_checksum[0]
