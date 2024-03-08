@@ -1,0 +1,84 @@
+# Format of Declad config file as concluded from perusing sources.
+
+debug_enabled: true              # debug messages in the log?
+default_category: "migrated"     # default metadata category for unexpeted uncategorized metadata attrs
+# For production you would use:
+# destination_root_path: "/pnfs/fnal.gov/usr/hypot/tape/phy-raw"   # path part of $dst_url for templates, below also $path in same
+# but for testing we're using:
+destination_root_path: "/pnfs/fnal.gov/usr/hypot/scratch/declad-test-raw"   # path part of $dst_url for templates, below also $path in same
+destination_server: "fndcadoor.xxxx.yyy:1094"      # host part of $dst_url for templates, below
+source_root_path: "/home/hypotraw/dropbox"          # path part of $src_url for templates, below
+metacat_dataset: "hypotpro:declad_test"              # dataset to use when declaring
+
+source_server: "localhost"                         # host part of $src_url for templates, below, 
+                                                   # use localhost for local dropbox
+
+create_dirs_command_template: ":" # command template using $server and  $path, 
+                                  # use ":" if destination auto-creates directories
+                                  
+copy_command_template:  "xrdcp --cksum adler32:$adler32_checksum $src_url $dst_url"     # copy command 
+download_command_template: "cp $src_path $dst_path"   # metadata file download command, with $server $src_path, $dst_path
+delete_command_template: "rm $path"                   # clean files out of Dropbox, with $server and $path 
+quarantine_location: /home/hypotraw/quarantine        # location for files / metadata that don't match, etc.
+
+#history_db: history.sqlite                         # file to keep history
+#interval: 30                                       # scan interval
+#timeout: 30                                        # timeout for scans
+#lowercase_meta_names: False                        # convert metadata fields to lowercase
+#max_movers: 10                                     # max parallel copies
+#metacat_dataset: for custom/dune.py                # dataset to put files in
+#keep_interval: 24*3600                             # how long to keep files
+#low_water_mark: 5                                  # size of work queue to trigger new scans
+#stagger: 0.2                                       # time interval in seconds between consecutive transfer task starts
+#meta_suffix: .json                                 # suffix for metadata file I.e. metadata for Fred.xx is in Fred.xx.json 
+
+metacat_namespace: "hypot"                           # namespace to add to files for metacat metadata
+metacat_url: https://metacat.xxxx.yyy:9443/hypot_meta_prod/app     # url to metacat service 
+rel_path_function: template                                   # relative path function ("hash" or "template") for placing files
+
+rel_path_pattern: "%(fn.tier)s/%(fn.owner)s/%(fn.description)s/%(fn.configuration)s/%(fn.format)s/%(sha256hash)s"
+                                                    # template (using metadata fields from metacat-converted metadata) if you picked "template" above
+ 
+log: logs/declad.log                                # name of logfile
+#error:                                             # separate error log file, defaults to log: value.
+
+rucio:
+  # in 2.1.0 and later, this will also be the metacat metadata
+  # dataset_did_template: "hypotpro:%(fn.description)s"     # template for rucio dataset namespace:name
+  dataset_did_template: "hypotpro:%(dh.description)s"     # template for rucio dataset namespace:name
+  declare_to_rucio: True                                    # whether to declare to rucio
+  target_rses: []                                           # rse's to ask Rucio to forward dataset, above, towards
+  #  drop_rse: FNAL_DCACHE_TAPE                                     # dropoff rse that has the dst_url we're copying to, above.
+  drop_rse: FNAL_SCRATCH                                     # dropoff rse that has the dst_url we're copying to, above.
+  
+samweb:
+  user: hypotpro                                      # Sam credentials: username
+  url: https://samweb.xxxx.yyy:8483/sam/hypot/api/    # url for samweb instance
+  cert: /home/hypotraw/certs/hypot-declad.xxxx.yyy-cert.pem          # user x509 cert for authentication
+  key:  /home/hypotraw/certs/hypot-declad.xxxx.yyy-key.pem           # private key for above
+
+scanner:
+  type: local                                        # scanner type: local or xrootd
+  replace_location:                                  # replace Dropbox location with this in path for local scanner
+  path: /home/hypotraw/dropbox
+  location: /home/hypotraw/dropbox
+  ls_command_template: "ls -ln $location"               # with $server and $location 
+  parse_re:              "^(?P<type>[a-z-])\\S+\\s+\\d+\\s+\\d+\\s+\\d+\\s+(?P<size>\\d+)\\s+\\S.{11}\\s(?P<path>\\S+)$"                                          
+                                                     # regexp for "ls" / "xrdfs" ls  output                                          
+  filename_patterns:                                # filename pattern(s) to watch for
+    - "*.txt" 
+    - "*.root" 
+    - "*.art"
+    - "*.ddtest"
+#filename_pattern:
+
+web_gui:
+  prefix: /declad                                    # website url prefix for web monitor
+  site_title: Declaration Daemon                     # website title for web monitor
+  port: 8443                                         # website port for monitor
+
+#graphite:                                           # for forwarding data to graphite service
+#        host: filer-carbon.cern.ch
+#        port: 2004
+#        namespace: fts.protodune.np04-srv-024-hd5 
+#        interval: 10

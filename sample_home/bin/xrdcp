@@ -1,0 +1,7 @@
+#!/bin/sh
+
+# run xrdcp, but with token authentication...
+
+uid=$(id -u)
+export BEARER_TOKEN=$(<${BEARER_TOKEN_FILE:-/var/run/user/$uid/bt_u$uid}) 
+/usr/bin/xrdcp "$@"
