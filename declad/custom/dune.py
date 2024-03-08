@@ -1,3 +1,16 @@
+
+mc = metadata_converter.MetadataConverter("dune")
+
+def new_metacat_metadata(desc, metadata, config):
+    # just use the metadata_converter
+    if ("size" in metadata and "metadata" in metadata):
+        # already is metacat metadata, just return the metadata part
+        return metadata["metadata"]
+    
+    namespace = "dune"
+    res = mc.convert_all_sam_mc(metadata, namespace)  
+    return res["metadata"]
+
 CoreAttributes = {
     "start_time":   "core.start_time",
     "end_time":     "core.end_time",
@@ -81,6 +94,11 @@ def metacat_metadata(desc, metadata, config):
     return out
 
 def sam_metadata(desc, metadata, config):
+    if ("metadata" in metadata):
+        # is new style metadata..
+        out = mc.convert_all_mc_sam(metadata)
+    else:
+        out = metadata.copy()
     out = metadata.copy()
     out["file_name"] = desc.Name
     out["user"] = config.get("samweb", {}).get("user", os.getlogin())
