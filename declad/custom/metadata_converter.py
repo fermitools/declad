@@ -2,11 +2,11 @@
 import functools
 import datetime
 
-def convert_noop(x):
+def convert_noop(x, md=None):
     """ identity function -- no conversion """
     return x
 
-def convert_date_mc_sam(date):
+def convert_date_mc_sam(date, md):
     """ date format convert metacat to sam """
     dt = datetime.datetime.fromtimestamp(date)
     return dt.isoformat()
@@ -24,7 +24,7 @@ def convert_checksums_sam_mc(checksums):
         res[ctype] = value
     return res
 
-def convert_checksums_mc_sam(checksums):
+def convert_checksums_mc_sam(checksums, md):
     res = []
     for ctype in checksums:
         res.append( "%s:%s" % (ctype, checksums[ctype]))
@@ -48,14 +48,14 @@ def convert_runs_sam_mc(runs):
     return res
 
 
-def convert_runs_mc_sam( runs):
+def convert_runs_mc_sam( runs, md):
     """ special case: run/subrun  number conversion"""
+    typ = md["metadata"].get("core.type", md["metadata"].get("md.type", "mc"))
     res = []
     m = run_scale_factors[g_experiment]
     for r in runs:
-        rn = r / m
+        rn = r // m
         sr = r % m
-        typ = "mc" # so far, they're all montecarlo
         res.append( [rn, sr, typ] )
     return res
 
@@ -70,7 +70,7 @@ def convert_parents_sam_mc( parents):
         })
     return res
 
-def convert_parents_mc_sam( parents):
+def convert_parents_mc_sam( parents, md):
     """ special case: parentage conversion"""
     res = []
     for i in parents:
@@ -79,7 +79,6 @@ def convert_parents_mc_sam( parents):
            "file_name": i["name"]
         })
     return res
-
 
 
 class MetadataConverter:
@@ -358,10 +357,11 @@ class MetadataConverter:
         return res
 
     def convert_all_mc_sam(self, md):
-        for k, v in md.items:
-            if not k in conversion_mc_sam[self.experiment]:
+        res = {}
+        for k, v in md.items():
+            if not k in self.conversion_mc_sam[self.experiment]:
                 continue
-            ck = conversion_mc_sam[self.experiment][k]
+            ck = self.conversion_mc_sam[self.experiment][k]
             # most keys don't require conversion, except...
             converter = convert_noop
             if k == "fid":
@@ -369,19 +369,20 @@ class MetadataConverter:
                continue
             if k == "parents":
                 converter = convert_parents_mc_sam
-            if k == "checksum":
+            if k == "checksums":
                 converter = convert_checksums_mc_sam
-            if k == "runs":
-                converter = convert_runs_mc_sam
             if k in [ "created_timestamp", "updated_timestamp" ]:
                 converter = convert_date_mc_sam
-            res[ck] = converter(v)
+            res[ck] = converter(v, md)
         # some things are in the metadata sub-dictionary...
         # they are listed as metadata:x in the table
         for k, v in md["metadata"].items():
             converter = convert_noop
-            if not ("metadata:"+k) in conversion_mc_sam[self.experiment]:
+            if not ("metadata:"+k) in self.conversion_mc_sam[self.experiment]:
                 continue
-            ck = conversion_mc_sam[self.experiment]["metadata:"+k]
-            res[ck] = converter(v)
+            ck = self.conversion_mc_sam[self.experiment]["metadata:"+k]
+            if ck == "runs":
+                converter = convert_runs_mc_sam
+            res[ck] = converter(v, md)
+        return res
 

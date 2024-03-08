@@ -6,7 +6,7 @@ import sys
 mc = metadata_converter.MetadataConverter("mu2e")
 
 def metacat_metadata(desc, metadata, config):
-    if ("size" in metadata and "metadata" in metadata)
+    if ("size" in metadata and "metadata" in metadata):
         # already is metacat metadata, just return the metadata part
         return metadata["metadata"]
     
