@@ -34,7 +34,7 @@ g_experiment = None
 
 # constants for run/subrun combination
 run_scale_factors = { 
-    "hypot": 1000000, 
+    "mu2e": 1000000, 
     "dune": 1000000, 
     "hypot": 1000,
 }
@@ -91,7 +91,7 @@ class MetadataConverter:
         # conversion table:
         #
         self.conversion_mc_sam = {
-            "hypot": {
+            "mu2e": {
                 # ordered to match rlc's spreadsheet...
                 "fid": "file_id",
 
