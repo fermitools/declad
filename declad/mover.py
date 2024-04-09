@@ -16,7 +16,7 @@ from pythreader import version_info as pythreader_version_info
 
 class MoverTask(Task, Logged):
     
-    RequiredMetadata = ["checksum", "file_size", "runs"]
+    RequiredMetadata = [["checksum","checksums"], ["file_size","size"], ["runs","core.runs", "rs.runs"]]
     DefaultMetaSuffix = ".json"
     # remember last dataset we created in to reduce repeats
     last_created_dataset = None 
@@ -68,8 +68,18 @@ class MoverTask(Task, Logged):
         
     def rucio_dataset_did(self, desc, metadata):
         meta = metadata.copy()
-        meta["run_number"] = meta["runs"][0][0]
-        meta["run_type"] = meta["runs"][0][2]
+        if "metadata" in metadata:
+            meta.update(metadata["metadata"])
+        if isinstance(meta.get("runs",[None])[0], list):
+            # if it is sam style run list, get run number and type
+            meta["run_number"] = meta["runs"][0][0]
+            meta["run_type"] = meta["runs"][0][2]
+        else:
+            # if it is metacat style run list, get run number and type
+            rl = meta.get("core.runs", meta.get("rs.runs", [0]))
+            meta["run_number"] = rl[0] // 1000000
+            rt = meta.get("core.type", meta.get("dh.type", "mc"))
+            meta["run_type"] = rt
         return self.RucioConfig["dataset_did_template"] % meta
 
     def undid(self, did):
@@ -140,14 +150,20 @@ class MoverTask(Task, Logged):
         # strip whitespace from around the attribute names
         metadata = {key.strip():value for key, value in metadata.items()}
 
-        for x in self.RequiredMetadata:
-            if x not in metadata:
-                return self.quarantine(f"{x} missing from metadata")
+        for rlst in self.RequiredMetadata:
+            found=False
+            for rm in rlst:
+                if rm in metadata:
+                    found= True
+                if rm in metadata.get("metadata",{}):
+                    found= True
+            if not found:
+                return self.quarantine(f"any of {rlst} missing from metadata")
 
         #
         # Check file size
         #
-        file_size = metadata["file_size"]
+        file_size = metadata.get("file_size", metadata.get("size"))
 
         if not isinstance(file_size, int) or file_size <= 0:
             return self.quarantine(f"Invalid file size in metadata: {file_size}")
@@ -169,7 +185,10 @@ class MoverTask(Task, Logged):
             
         did = file_scope + ":" + filename
             
-        adler32_checksum = metadata["checksum"]
+        if "checksum" in metadata:
+            adler32_checksum = metadata["checksum"]
+        if "checksums" in metadata:
+            adler32_checksum = metadata["checksums"]["adler32"]
         if isinstance(adler32_checksum, list) and adler32_checksum:
              adler32_checksum = adler32_checksum[0]
 
@@ -177,6 +196,7 @@ class MoverTask(Task, Logged):
             type, value = adler32_checksum.split(':', 1)
             assert type == "adler32"
             adler32_checksum = value
+
         dataset_scope = get_dataset_scope(self.FileDesc, metadata, self.Config)
         
 
@@ -282,6 +302,7 @@ class MoverTask(Task, Logged):
                 except KeyError:
                     return self.quarantine("Existing SAM metadata does not contain file_id")
                 sam_size = existing_sam_meta.get("file_size")
+
                 sam_adler32 = dict(ck.split(':', 1) for ck in existing_sam_meta.get("checksum", [])).get("adler32").lower()
                 if isinstance(adler32_checksum, list) and adler32_checksum:
                      adler32_checksum = adler32_checksum[0]
@@ -293,6 +314,7 @@ class MoverTask(Task, Logged):
             else:
                 s_metadata = sam_metadata(self.FileDesc, metadata, self.Config)
                 if do_declare_to_sam:
+                    self.log(f"trying to declare to SAM: {repr(s_metadata)}")
                     try:    file_id = sclient.declare(s_metadata)
                     except SAMDeclarationError as e:
                         return self.failed(str(e))
@@ -396,7 +418,7 @@ class MoverTask(Task, Logged):
                 self.timestamp("declaring to Rucio")
 
                 # create dataset if does not exist
-                dataset_scope, dataset_name = self.undid(self.rucio_dataset_did(self.FileDesc, metadata))
+                dataset_scope, dataset_name = self.undid(self.rucio_dataset_did(self.FileDesc, metacat_meta))
 
                 if f"{dataset_scope}:{dataset_name}" != self.last_created_dataset:
                     self.last_created_dataset = f"{dataset_scope}:{dataset_name}" 

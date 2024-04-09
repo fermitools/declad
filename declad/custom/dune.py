@@ -1,4 +1,19 @@
+
+mc = metadata_converter.MetadataConverter("dune")
+
+def new_metacat_metadata(desc, metadata, config):
+    # just use the metadata_converter
+    if ("size" in metadata and "metadata" in metadata):
+        # already is metacat metadata, just return the metadata part
+        return metadata["metadata"]
+    
+    namespace = "dune"
+    res = mc.convert_all_sam_mc(metadata, namespace)  
+    return res["metadata"]
+
 CoreAttributes = {
+    "start_time":   "core.start_time",
+    "end_time":     "core.end_time",
     "event_count":  "core.event_count",
     "file_type":    "core.file_type", 
     "file_format":  "core.file_format",
@@ -13,6 +28,10 @@ CoreAttributes = {
 }
 
 def metacat_metadata(desc, metadata, config):
+
+    if ("size" in metadata and "metadata" in metadata):
+        # already is metacat metadata, just return the metadata part
+        return metadata["metadata"]
     
     metadata = metadata.copy()      # so that we do not modify the input dictionary in place
     
@@ -75,6 +94,11 @@ def metacat_metadata(desc, metadata, config):
     return out
 
 def sam_metadata(desc, metadata, config):
+    if ("metadata" in metadata):
+        # is new style metadata..
+        out = mc.convert_all_mc_sam(metadata)
+    else:
+        out = metadata.copy()
     out = metadata.copy()
     out["file_name"] = desc.Name
     out["user"] = config.get("samweb", {}).get("user", os.getlogin())
@@ -90,6 +114,14 @@ def sam_metadata(desc, metadata, config):
         else:
             type, value = "adler32", ck
     out["checksum"] = [f"{type}:{value}"]
+    if "metadata" in out:
+        for k,v in core_attributes:
+            if out["metadata"].get(v):
+                out[k] = out["metadata"].get(v)
+        out["file_size"] = out["size"]
+        out.pop("size")
+        out.pop("metadata")
+        out.pop("checksums")
     out.pop("events", None)
     #print("sam_metadata:"), pprint.pprint(out)
     return out

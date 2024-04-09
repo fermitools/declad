@@ -3,7 +3,7 @@ import custom.metadata_converter
 import os
 import sys
 
-mc = metadata_converter.MetadataConverter("mu2e")
+mc = metadata_converter.MetadataConverter("hypot")
 
 def metacat_metadata(desc, metadata, config):
     if ("size" in metadata and "metadata" in metadata):
@@ -36,7 +36,7 @@ def sam_metadata(desc, metadata, config):
 
 def get_file_scope(desc, metadata, config):
     #return metadata["runs"][0][2]
-    return "mu2epro"
+    return "hypotpro"
 
 def get_dataset_scope(desc, metadata, config):
     return get_file_scope(desc, metadata, config)
