@@ -1,4 +1,8 @@
 
+import custom.metadata_converter 
+import os
+import sys
+
 mc = metadata_converter.MetadataConverter("dune")
 
 def new_metacat_metadata(desc, metadata, config):
