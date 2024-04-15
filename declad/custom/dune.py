@@ -101,6 +101,7 @@ def sam_metadata(desc, metadata, config):
     if ("metadata" in metadata):
         # is new style metadata..
         out = mc.convert_all_mc_sam(metadata)
+        return out
     else:
         out = metadata.copy()
     out = metadata.copy()
@@ -131,7 +132,10 @@ def sam_metadata(desc, metadata, config):
     return out
 
 def get_file_scope(desc, metadata, config):
-    return metadata["runs"][0][2]
+    if "runs" in metadata:
+        return metadata["runs"][0][2]
+    else
+        return metadata["metadata"]["core.runs"][0][2]
 
 def get_dataset_scope(desc, metadata, config):
     return get_file_scope(desc, metadata, config)
