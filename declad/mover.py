@@ -77,8 +77,8 @@ class MoverTask(Task, Logged):
         else:
             # if it is metacat style run list, get run number and type
             rl = meta.get("core.runs", meta.get("rs.runs", [0]))
-            meta["run_number"] = rl[0] // 1000000
-            rt = meta.get("core.type", meta.get("dh.type", "mc"))
+            meta["run_number"] = rl[0]
+            rt = meta.get("core.run_type", meta.get("dh.type", "mc"))
             meta["run_type"] = rt
         return self.RucioConfig["dataset_did_template"] % meta
 
