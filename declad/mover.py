@@ -8,7 +8,10 @@ from xrootd_scanner import XRootDScanner
 from lfn2pfn import lfn2pfn
 from datetime import datetime, timezone
 
-from custom import metacat_metadata, sam_metadata, get_file_scope, get_dataset_scope, metacat_dataset
+try:
+    from custom import metacat_metadata, sam_metadata, get_file_scope, get_dataset_scope, metacat_dataset
+except:
+    raise FileNotFoundError(f"could not import from custom:\n Did you symlink an experiement.py as __init__.py in {os.path.dirname(__file__)}/custom?")
 
 from pythreader import version_info as pythreader_version_info
 #if pythreader_version_info < (2,15,0):
