@@ -21,6 +21,15 @@ download_command_template: "cp $src_path $dst_path"   # metadata file download c
 delete_command_template: "rm $path"                   # clean files out of Dropbox, with $server and $path 
 quarantine_location: /home/hypotraw/quarantine        # location for files / metadata that don't match, etc.
 
+#required_metadata:
+# - - checksum
+#   - checksums
+# - - file_size
+#   - size
+# - - runs
+#   - core.runs
+#   - rs.runs
+
 #history_db: history.sqlite                         # file to keep history
 #interval: 30                                       # scan interval
 #timeout: 30                                        # timeout for scans
