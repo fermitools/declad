@@ -35,7 +35,7 @@ g_experiment = None
 # constants for run/subrun combination
 run_scale_factors = { 
     "mu2e": 1000000, 
-    "dune": 1000000, 
+    "dune": 100000, 
     "hypot": 1000,
 }
 
@@ -50,12 +50,15 @@ def convert_runs_sam_mc(runs):
 
 def convert_runs_mc_sam( runs, md):
     """ special case: run/subrun  number conversion"""
-    typ = md["metadata"].get("core.type", md["metadata"].get("md.type", "mc"))
+    typ = md["metadata"].get("core.run_type", md["metadata"].get("md.type", "mc"))
     res = []
     m = run_scale_factors[g_experiment]
+    mysubruns = md["metadata"].get("core.runs_subruns",[])
+    srcount=0
     for r in runs:
-        rn = r // m
-        sr = r % m
+        rn = r
+        sr = mysubruns[srcount] % m
+        srcount += 1
         res.append( [rn, sr, typ] )
     return res
 
@@ -211,8 +214,8 @@ class MetadataConverter:
                 "metadata:core.file_format":        "file_format",
                 "metadata:core.content_status":     "content_status",
                 "metadata:core.event_count":        "event_count",
-                "metadata:core.first_event_number": "first_event_number",
-                "metadata:core.last_event_number":  "last_event_number",
+                "metadata:core.first_event_number": "first_event",
+                "metadata:core.last_event_number":  "last_event",
                 "metadata:core.run_type":           "run_type",
                 "metadata:core.runs":               "runs",
                 "metadata:core.application:family": "family",
@@ -383,6 +386,7 @@ class MetadataConverter:
             ck = self.conversion_mc_sam[self.experiment]["metadata:"+k]
             if ck == "runs":
                 converter = convert_runs_mc_sam
-            res[ck] = converter(v, md)
+            if not ck == "run_type":
+                res[ck] = converter(v, md)
         return res
 

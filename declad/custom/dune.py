@@ -101,15 +101,15 @@ def sam_metadata(desc, metadata, config):
     if ("metadata" in metadata):
         # is new style metadata..
         out = mc.convert_all_mc_sam(metadata)
+        return out
     else:
         out = metadata.copy()
     out = metadata.copy()
     out["file_name"] = desc.Name
     out["user"] = config.get("samweb", {}).get("user", os.getlogin())
     ck = out.get("checksum")
-
     # take either "checksum" : [ "adler32:xxx" ] or "checksum": "adler32:xxx" 
-    if isisntance(ck, list):
+    if isinstance(ck, list):
         ck = list[0]
 
     if ck:
@@ -127,11 +127,13 @@ def sam_metadata(desc, metadata, config):
         out.pop("metadata")
         out.pop("checksums")
     out.pop("events", None)
-    #print("sam_metadata:"), pprint.pprint(out)
     return out
 
 def get_file_scope(desc, metadata, config):
-    return metadata["runs"][0][2]
+    if isinstance(metadata.get("runs",[None])[0],list):
+        return metadata["runs"][0][2]
+    else:
+        return metadata["metadata"]["core.run_type"]
 
 def get_dataset_scope(desc, metadata, config):
     return get_file_scope(desc, metadata, config)
