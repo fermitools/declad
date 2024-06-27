@@ -44,3 +44,10 @@ def get_dataset_scope(desc, metadata, config):
 def metacat_dataset(desc, metadata, config):
     return config.get("metacat_dataset")
 
+def template_tags(metadata):
+    res = {}
+    if metadata["metadata"]["fn.owner"] == "mu2e":
+         res["dirprefix"] =  "phy"
+    else:
+         res["dirprefix"] =  "usr" 
+    return res
