@@ -122,7 +122,7 @@ class SAMWebClient(Logged):
 
 def client(config):
     if "url" in config:
-        return SAMWebClient(config["url"], config.get("cert"), config.get("key"))
+        return SAMWebClient(config["url"], config.get("cert",None), config.get("key",None), config.get("tokenfile",None))
     else:
         return None
 
