@@ -1,3 +1,8 @@
+try:
+    from custom import metacat_metadata, sam_metadata, get_file_scope, get_dataset_scope, metacat_dataset
+except:
+    raise AttributeError("Unable to import 'custom', did you forget to symlink experiment.py as __init__.py?")
+
 from pythreader import PyThread, synchronized, Primitive, Task, TaskQueue
 from tools import runCommand
 import json, hashlib, traceback, time, os, pprint, textwrap
@@ -8,7 +13,6 @@ from xrootd_scanner import XRootDScanner
 from lfn2pfn import lfn2pfn
 from datetime import datetime, timezone
 
-from custom import metacat_metadata, sam_metadata, get_file_scope, get_dataset_scope, metacat_dataset
 
 from pythreader import version_info as pythreader_version_info
 #if pythreader_version_info < (2,15,0):

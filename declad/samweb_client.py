@@ -15,18 +15,32 @@ class SAMDeclarationError(Exception):
 
 class SAMWebClient(Logged):
     
-    def __init__(self, url, cert, key):
+    def __init__(self, url, cert=None, key=None, tokenfile=None):
         Logged.__init__(self)
         self.URL = url
-        self.Cert = cert
-        self.Key = key
+        self.Tokenfile = tokenfile
+        if cert and key:
+            self.CertTuple = (self.Cert,  self.Key)
+        else:
+            self.CertTuple = None
+
+    def headers(self, base = None):
+        if base:
+            headers = base
+        else:
+            headers = {"Accept":"application/json"}
+        if self.Tokenfile:
+            with os.open(self.Tokenfile, "r") as tf: 
+                token = tf.read().strip()
+            headers["Authentication"] = "Bearer " + token
+        return headers
 
     def get_file(self, name=None, id=None):
         if name:
             url = self.URL + "/files/name/" + quote(name) + "/metadata?format=json"
         else:
             url = self.URL + f"/files/id/{id}/metadata?format=json"
-        response = requests.get(url, headers={"Accept":"application/json"})
+        response = requests.get(url, headers=self.headers)
         if response.status_code // 100 == 2:
             return response.json()
         else:
@@ -35,9 +49,11 @@ class SAMWebClient(Logged):
     def declare(self, metadata, location=None):
         data = json.dumps(metadata, indent=1, sort_keys=True)
         file_name = metadata["file_name"]
-        response = requests.post(self.URL + "/files", data=data,
-                        headers={"Content-Type":"application/json"},
-			cert=(self.Cert, self.Key)
+        response = requests.post(
+            self.URL + "/files", 
+            data=data,
+            headers=self.headers,
+			cert=self.CertTuple
         )
         if response.status_code // 100 == 4:
             raise SAMDeclarationError("SAM declaration error", response.text)
@@ -68,8 +84,8 @@ class SAMWebClient(Logged):
         #self.debug("  url:", url)
         #self.debug("  headers:", headers)
         #self.debug("  data:", data)
-        response = requests.post(url, data=data, headers=headers,
-            cert=(self.Cert, self.Key)
+        response = requests.post(url, data=data, headers=self.headers(headers),
+            cert=self.CertTuple
         )
         #self.debug("response:", str(response))
         #self.debug(f"  text:[{response.text}]")
@@ -87,7 +103,7 @@ class SAMWebClient(Logged):
                 "Accept" : "application/json",
                 "SAM-Role": "default"
             },
-            cert=(self.Cert, self.Key)
+            cert=self.CertTuple
         )
         txt = response.text
         #self.debug("locate_file: response:", str(response))
