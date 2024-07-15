@@ -45,6 +45,7 @@ log: logs/declad.log                                # name of logfile
 rucio:
   # in 2.1.0 and later, this will also be the metacat metadata
   # dataset_did_template: "hypotpro:%(fn.description)s"     # template for rucio dataset namespace:name
+  activity: Production                                    # activity to set on transfer rules
   dataset_did_template: "hypotpro:%(dh.description)s"     # template for rucio dataset namespace:name
   declare_to_rucio: True                                    # whether to declare to rucio
   target_rses: []                                           # rse's to ask Rucio to forward dataset, above, towards

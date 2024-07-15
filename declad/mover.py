@@ -28,6 +28,7 @@ class MoverTask(Task, Logged):
         self.Config = config
         self.MetaSuffix = config.get("meta_suffix", ".json")
         self.RucioConfig = config.get("rucio", {})
+        self.Activity = RucioConfig.get("activity", "")
         self.SAMConfig = config.get("samweb", {})
         self.QuarantineLocation = config.get("quarantine_location")
         self.SourceServer = config["source_server"]
@@ -440,7 +441,11 @@ class MoverTask(Task, Logged):
 
                     for target_rse in self.RucioConfig["target_rses"]:
                         try:
-                            rclient.add_replication_rule([{"scope":dataset_scope, "name":dataset_name}], 1, target_rse)
+                            rdict = {"scope":dataset_scope, "name":dataset_name}
+                            if self.Activity:
+                                rclient.add_replication_rule([rdict], 1, target_rse, activity=self.Activity)
+                            else:
+                                rclient.add_replication_rule([rdict], 1, target_rse)
                         except DuplicateRule:
                             pass
                         except Exception as e:
