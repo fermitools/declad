@@ -22,6 +22,7 @@ class LocalScanner(PyThread, Logged):
         scan_config = config["scanner"]
         self.Interval = scan_config.get("interval", self.DefaultInterval)
         self.Location = scan_config["location"]
+        self.logdir = os.path.dirname(config["log"])
         self.MetadataExtractor = scan_config.get("metadata_extractor","")
         self.ReplaceLocation = scan_config.get("replace_location")
         self.lsCommandTemplate = scan_config["ls_command_template"]            
@@ -82,6 +83,8 @@ class LocalScanner(PyThread, Logged):
     def run(self):
         prev_data_files = {}
         extracted = set()
+        old_extracted = set()
+        extract_clean_count = 0
         while not self.Stop:
             if self.Receiver.low_water():
                 data_files = {}         # name -> desc
@@ -133,13 +136,21 @@ class LocalScanner(PyThread, Logged):
                                 extracted.add(fn)
 
                         while extract_list:
-                            cmd = "cd " + dropbox + ";"
+                            cmd = "(cd " + self.Location + ";"
                             cmd = cmd + self.MetadataExtractor + ' '.join(extract_list[:50])
-                            cmd = cmd +  " >> metadata_extrator.out  &"
+                            cmd = cmd +  " )  >> " + self.logdir + "/metadata_extrator.out  &"
                             os.system( cmd )
                             extract_list = extract_list[50:]
 
                     prev_data_files = data_files
+
+                    # don't let extracted set grow forever...
+                    extracted_clean_count +=  1
+                    if extracted_clean_count > 500:
+                         extracted_clean_count = 0
+                         extracted = extracted - extracted_old
+                         extracted_old = extracted
+
             else:
                 self.log("scan is not needed as the receiver is above the low water mark")
 
