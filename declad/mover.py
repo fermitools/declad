@@ -289,7 +289,7 @@ class MoverTask(Task, Logged):
             except Exception as e:
                 return self.failed(f"Can not get file size at the destination: {e}")
 
-             if dest_size != file_size:
+            if dest_size != file_size:
                  return self.failed("Transferred file has wrong size")
             
         else:
