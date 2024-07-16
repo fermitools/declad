@@ -12,7 +12,7 @@ from custom import metacat_metadata, sam_metadata, get_file_scope, get_dataset_s
 
 # import a template_tags() routine if present, otherwise nothing local..
 try:
-from custom import template_tags
+    from custom import template_tags
 except:
     def template_tags(metadata):
         return {}
