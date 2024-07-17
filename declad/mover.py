@@ -28,7 +28,7 @@ class MoverTask(Task, Logged):
         self.Config = config
         self.MetaSuffix = config.get("meta_suffix", ".json")
         self.RucioConfig = config.get("rucio", {})
-        self.Activity = RucioConfig.get("activity", "")
+        self.Activity = self.RucioConfig.get("activity", "")
         self.SAMConfig = config.get("samweb", {})
         self.QuarantineLocation = config.get("quarantine_location")
         self.SourceServer = config["source_server"]
