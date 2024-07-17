@@ -40,7 +40,7 @@ class SAMWebClient(Logged):
             url = self.URL + "/files/name/" + quote(name) + "/metadata?format=json"
         else:
             url = self.URL + f"/files/id/{id}/metadata?format=json"
-        response = requests.get(url, headers=self.headers)
+        response = requests.get(url, headers=self.headers())
         if response.status_code // 100 == 2:
             return response.json()
         else:
@@ -52,7 +52,7 @@ class SAMWebClient(Logged):
         response = requests.post(
             self.URL + "/files", 
             data=data,
-            headers=self.headers,
+            headers=self.headers(),
 			cert=self.CertTuple
         )
         if response.status_code // 100 == 4:
