@@ -271,7 +271,7 @@ class MoverTask(Task, Logged):
                 .replace("$src_data_path", src_data_path)   \
                 .replace("$dst_rel_path", dest_rel_path) \
                 .replace("$adler32_checksum", adler32_checksum) \
-                .replace("$file_size", file_size )
+                .replace("$file_size", str(file_size) )
             #self.debug("copy command:", copy_cmd)
 
             self.timestamp("transferring data")
