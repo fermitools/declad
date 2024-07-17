@@ -20,7 +20,7 @@ class SAMWebClient(Logged):
         self.URL = url
         self.Tokenfile = tokenfile
         if cert and key:
-            self.CertTuple = (self.Cert,  self.Key)
+            self.CertTuple = (cert, key)
         else:
             self.CertTuple = None
 
