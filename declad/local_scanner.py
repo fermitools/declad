@@ -22,7 +22,7 @@ class LocalScanner(PyThread, Logged):
         scan_config = config["scanner"]
         self.Interval = scan_config.get("interval", self.DefaultInterval)
         self.Location = scan_config["location"]
-        self.logdir = os.path.dirname(config["log"])
+        self.MetadataExtractorLog = scan_config.get("metadata_extractor_log","")
         self.MetadataExtractor = scan_config.get("metadata_extractor","")
         self.ReplaceLocation = scan_config.get("replace_location")
         self.lsCommandTemplate = scan_config["ls_command_template"]            
@@ -84,7 +84,7 @@ class LocalScanner(PyThread, Logged):
         prev_data_files = {}
         extracted = set()
         old_extracted = set()
-        extract_clean_count = 0
+        extracted_clean_count = 0
         while not self.Stop:
             if self.Receiver.low_water():
                 data_files = {}         # name -> desc
@@ -129,16 +129,21 @@ class LocalScanner(PyThread, Logged):
                         # if we have a metadata extractor defined, look for files that have been here
                         # for two scans without metadata, and run the metadata extractor on them.
                         extract_list = []
+                        #self.log(f"metadata_extractor branch: prev_data_files {repr(prev_data_files)}")
+                        #self.log(f"metadata_extractor branch: data_files {repr(data_files)}")
                         for fn in data_files:
                             if not fn in out_files and fn in prev_data_files and not fn in extracted:
                                 #  its been in 2 passes with no metadata found...
                                 extract_list.append(fn)
                                 extracted.add(fn)
 
+                        #self.log(f"metadata_extractor branch: extract_list {repr(extract_list)}")
+
                         while extract_list:
                             cmd = "(cd " + self.Location + ";"
-                            cmd = cmd + self.MetadataExtractor + ' '.join(extract_list[:50])
-                            cmd = cmd +  " )  >> " + self.logdir + "/metadata_extrator.out  &"
+                            cmd = cmd + self.MetadataExtractor + ' ' + ' '.join(extract_list[:50])
+                            cmd = cmd +  " )  >> " + self.MetadataExtractorLog + " 2>&1 &"
+                            self.log(f"Running: {cmd}")
                             os.system( cmd )
                             extract_list = extract_list[50:]
 
