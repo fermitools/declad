@@ -41,7 +41,7 @@ class SAMWebClient(Logged):
         else:
             url = self.URL + f"/files/id/{id}/metadata?format=json"
         response = requests.get(url, headers=self.headers())
-        if response.status_code // 100 == 2:
+        if response.status_code // 100 in (4,5):
             return response.json()
         else:
             return None
@@ -55,7 +55,7 @@ class SAMWebClient(Logged):
             headers=self.headers(),
 			cert=self.CertTuple
         )
-        if response.status_code // 100 == 4:
+        if response.status_code // 100 in (4,5):
             raise SAMDeclarationError("SAM declaration error", response.text)
         response.raise_for_status()
         file_id = response.text.strip()
@@ -89,7 +89,7 @@ class SAMWebClient(Logged):
         )
         #self.debug("response:", str(response))
         #self.debug(f"  text:[{response.text}]")
-        if response.status_code // 100 == 4:
+        if response.status_code // 100 in (4,5):
             raise SAMDeclarationError("SAM error adding file location:", response.text)
         response.raise_for_status()
         
