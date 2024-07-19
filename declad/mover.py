@@ -7,6 +7,7 @@ from logs import Logged
 from xrootd_scanner import XRootDScanner
 from lfn2pfn import lfn2pfn
 from datetime import datetime, timezone
+from rucio.common.exception import DataIdentifierAlreadyExists, DuplicateRule, FileAlreadyExists
 
 from custom import metacat_metadata, sam_metadata, get_file_scope, get_dataset_scope, metacat_dataset
 
