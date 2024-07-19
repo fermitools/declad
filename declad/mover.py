@@ -280,15 +280,6 @@ class MoverTask(Task, Logged):
                 return self.failed("Data copy failed: %s" % (output,))
 
             self.log("data transfer complete")
-
-            try:    
-                dest_size = self.get_file_size(self.DestServer, dest_data_path)
-                self.debug("Destination data file size:", dest_size)
-            except Exception as e:
-                return self.failed(f"Can not get file size at the destination: {e}")
-
-            if dest_size != file_size:
-                 return self.failed("Transferred file has wrong size")
             
         else:
             self.log("data file already exists at the destination and has correct size. Not overwriting")
