@@ -430,7 +430,8 @@ class MoverTask(Task, Logged):
                     file_info = {
                             "namespace":    file_scope,
                             "name":         filename,
-                            "metadata":     metacat_meta
+                            "metadata":     metacat_meta,
+                            "size":         file_size,
                             "checksums":    {   "adler32":  adler32_checksum   },
                         }
                     if file_id is not None:
