@@ -8,7 +8,10 @@ from xrootd_scanner import XRootDScanner
 from lfn2pfn import lfn2pfn
 from datetime import datetime, timezone
 
-from custom import metacat_metadata, sam_metadata, get_file_scope, get_dataset_scope, metacat_dataset
+try:
+    from custom import metacat_metadata, sam_metadata, get_file_scope, get_dataset_scope, metacat_dataset
+except:
+    raise FileNotFoundError(f"could not import from custom:\n Did you symlink an experiment.py as __init__.py in {os.path.dirname(__file__)}/custom?")
 
 # import a template_tags() routine if present, otherwise nothing local..
 try:
