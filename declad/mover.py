@@ -10,6 +10,14 @@ from datetime import datetime, timezone
 
 from custom import metacat_metadata, sam_metadata, get_file_scope, get_dataset_scope, metacat_dataset
 
+# import a template_tags() routine if present, otherwise nothing local..
+try:
+    from custom import template_tags
+except:
+    def template_tags(metadata):
+        return {}
+
+
 from pythreader import version_info as pythreader_version_info
 #if pythreader_version_info < (2,15,0):
 #    raise ModuleNotFoundError("pythreader version 2.15.0 or newer is required")
@@ -217,6 +225,8 @@ class MoverTask(Task, Logged):
                 md5hash = "%s/%s" % (mhstr[0:2], mhstr[2:4]),
                 sha256hash = "%s/%s" % (shstr[0:2], shstr[2:4]),
             ))
+            # add plugin defined tags...
+            meta_dict.update(template_tags(metadata))
             # push metadata layer up...
             if "metadata" in meta_dict:
                 meta_dict.update(meta_dict["metadata"])
