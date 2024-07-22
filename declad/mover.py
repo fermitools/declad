@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 try:
     from custom import metacat_metadata, sam_metadata, get_file_scope, get_dataset_scope, metacat_dataset
 except:
-    raise FileNotFoundError(f"could not import from custom:\n Did you symlink an experiement.py as __init__.py in {os.path.dirname(__file__)}/custom?")
+    raise FileNotFoundError(f"could not import from custom:\n Did you symlink an experiment.py as __init__.py in {os.path.dirname(__file__)}/custom?")
 
 from pythreader import version_info as pythreader_version_info
 #if pythreader_version_info < (2,15,0):
