@@ -158,7 +158,7 @@ class MoverTask(Task, Logged):
         # strip whitespace from around the attribute names
         metadata = {key.strip():value for key, value in metadata.items()}
 
-        for rlst in self.RequiredMetadata:
+        for rlst in self.Config.get("required_metadata", self.RequiredMetadata):
             found=False
             for rm in rlst:
                 if rm in metadata:
