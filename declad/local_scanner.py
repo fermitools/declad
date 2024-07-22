@@ -83,7 +83,7 @@ class LocalScanner(PyThread, Logged):
     def run(self):
         prev_data_files = {}
         extracted = set()
-        old_extracted = set()
+        extracted_old = set()
         extracted_clean_count = 0
         while not self.Stop:
             if self.Receiver.low_water():
