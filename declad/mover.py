@@ -1,3 +1,8 @@
+try:
+    from custom import metacat_metadata, sam_metadata, get_file_scope, get_dataset_scope, metacat_dataset
+except:
+    raise AttributeError("Unable to import 'custom', did you forget to symlink experiment.py as __init__.py?")
+
 from pythreader import PyThread, synchronized, Primitive, Task, TaskQueue
 from tools import runCommand
 import json, hashlib, traceback, time, os, pprint, textwrap
@@ -8,18 +13,12 @@ from xrootd_scanner import XRootDScanner
 from lfn2pfn import lfn2pfn
 from datetime import datetime, timezone
 
-try:
-    from custom import metacat_metadata, sam_metadata, get_file_scope, get_dataset_scope, metacat_dataset
-except:
-    raise FileNotFoundError(f"could not import from custom:\n Did you symlink an experiment.py as __init__.py in {os.path.dirname(__file__)}/custom?")
-
 # import a template_tags() routine if present, otherwise nothing local..
 try:
     from custom import template_tags
 except:
     def template_tags(metadata):
         return {}
-
 
 from pythreader import version_info as pythreader_version_info
 #if pythreader_version_info < (2,15,0):
