@@ -1,6 +1,4 @@
-from logs import Logged
-import requests, json
-from urllib.parse import quote, urlencode
+from logs import Logged import requests, json from urllib.parse import quote, urlencode
 
 class SAMDeclarationError(Exception):
     def __init__(self, message, body=None):

@@ -320,7 +320,8 @@ class MoverTask(Task, Logged):
         if sclient is not None:
             self.timestamp("declaring to SAM")
             existing_sam_meta = sclient.get_file(filename)
-            if existing_sam_meta is not None:
+
+            if existing_sam_meta is not None and not "error" in existing_sam_meta:
                 try:    file_id = str(existing_sam_meta["file_id"])
                 except KeyError:
                     return self.quarantine("Existing SAM metadata does not contain file_id")

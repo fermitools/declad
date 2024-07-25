@@ -15,11 +15,12 @@ class LocalScanner(PyThread, Logged):
     # -rw-r--r-- 1 ivm3 ivm3 1228 Mar 22 16:52 /home/ivm3/token
     DefaultParseRE = r"(?P<type>[a-z-])\S+\s+\d+\s+\S+\s+\S+\s+(?P<size>\d+)\s+\S+\s+\d+\s+\S+\s+(?P<path>\S+)$"
 
-    def __init__(self, receiver, config):
+    def __init__(self, receiver, config, historydb = None):
         PyThread.__init__(self, daemon=True, name="Scanner")
         Logged.__init__(self, f"Scanner")
         self.Receiver = receiver
         scan_config = config["scanner"]
+        self.Historydb = historydb
         self.Interval = scan_config.get("interval", self.DefaultInterval)
         self.Location = scan_config["location"]
         self.MetadataExtractorLog = scan_config.get("metadata_extractor_log","")
@@ -136,6 +137,10 @@ class LocalScanner(PyThread, Logged):
                                 #  its been in 2 passes with no metadata found...
                                 extract_list.append(fn)
                                 extracted.add(fn)
+
+                                # log in history/prometheus... assume extraction takes 1 sec
+                                tstart = time.time()
+                                self.Historydb.add_record(fn, None, tstart, tstart+1.0, "extracted", "")
 
                         #self.log(f"metadata_extractor branch: extract_list {repr(extract_list)}")
 
