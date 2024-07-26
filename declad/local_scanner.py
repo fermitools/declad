@@ -22,6 +22,8 @@ class LocalScanner(PyThread, Logged):
         scan_config = config["scanner"]
         self.Interval = scan_config.get("interval", self.DefaultInterval)
         self.Location = scan_config["location"]
+        self.MetadataExtractorLog = scan_config.get("metadata_extractor_log","")
+        self.MetadataExtractor = scan_config.get("metadata_extractor","")
         self.ReplaceLocation = scan_config.get("replace_location")
         self.lsCommandTemplate = scan_config["ls_command_template"]            
         self.ParseRE = re.compile(scan_config.get("parse_re", self.DefaultParseRE))
@@ -79,6 +81,10 @@ class LocalScanner(PyThread, Logged):
         ], None
 
     def run(self):
+        prev_data_files = {}
+        extracted = set()
+        extracted_old = set()
+        extracted_clean_count = 0
         while not self.Stop:
             if self.Receiver.low_water():
                 data_files = {}         # name -> desc
@@ -118,6 +124,38 @@ class LocalScanner(PyThread, Logged):
                         #for fn, desc in out_files.items():
                         #    self.debug(desc.Path, fn)
                         self.Receiver.add_files(out_files)
+
+                    if self.MetadataExtractor:
+                        # if we have a metadata extractor defined, look for files that have been here
+                        # for two scans without metadata, and run the metadata extractor on them.
+                        extract_list = []
+                        #self.log(f"metadata_extractor branch: prev_data_files {repr(prev_data_files)}")
+                        #self.log(f"metadata_extractor branch: data_files {repr(data_files)}")
+                        for fn in data_files:
+                            if not fn in out_files and fn in prev_data_files and not fn in extracted:
+                                #  its been in 2 passes with no metadata found...
+                                extract_list.append(fn)
+                                extracted.add(fn)
+
+                        #self.log(f"metadata_extractor branch: extract_list {repr(extract_list)}")
+
+                        while extract_list:
+                            cmd = "(cd " + self.Location + ";"
+                            cmd = cmd + self.MetadataExtractor + ' ' + ' '.join(extract_list[:50])
+                            cmd = cmd +  " )  >> " + self.MetadataExtractorLog + " 2>&1 &"
+                            self.log(f"Running: {cmd}")
+                            os.system( cmd )
+                            extract_list = extract_list[50:]
+
+                    prev_data_files = data_files
+
+                    # don't let extracted set grow forever...
+                    extracted_clean_count +=  1
+                    if extracted_clean_count > 500:
+                         extracted_clean_count = 0
+                         extracted = extracted - extracted_old
+                         extracted_old = extracted
+
             else:
                 self.log("scan is not needed as the receiver is above the low water mark")
 

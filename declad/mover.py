@@ -1,3 +1,8 @@
+try:
+    from custom import metacat_metadata, sam_metadata, get_file_scope, get_dataset_scope, metacat_dataset
+except:
+    raise AttributeError("Unable to import 'custom', did you forget to symlink experiment.py as __init__.py?")
+
 from pythreader import PyThread, synchronized, Primitive, Task, TaskQueue
 from tools import runCommand
 import json, hashlib, traceback, time, os, pprint, textwrap
@@ -9,7 +14,12 @@ from lfn2pfn import lfn2pfn
 from datetime import datetime, timezone
 from rucio.common.exception import DataIdentifierAlreadyExists, DuplicateRule, FileAlreadyExists
 
-from custom import metacat_metadata, sam_metadata, get_file_scope, get_dataset_scope, metacat_dataset
+# import a template_tags() routine if present, otherwise nothing local..
+try:
+    from custom import template_tags
+except:
+    def template_tags(metadata):
+        return {}
 
 from pythreader import version_info as pythreader_version_info
 #if pythreader_version_info < (2,15,0):
@@ -152,7 +162,7 @@ class MoverTask(Task, Logged):
         # strip whitespace from around the attribute names
         metadata = {key.strip():value for key, value in metadata.items()}
 
-        for rlst in self.RequiredMetadata:
+        for rlst in self.Config.get("required_metadata", self.RequiredMetadata):
             found=False
             for rm in rlst:
                 if rm in metadata:
@@ -217,6 +227,8 @@ class MoverTask(Task, Logged):
                 md5hash = "%s/%s" % (mhstr[0:2], mhstr[2:4]),
                 sha256hash = "%s/%s" % (shstr[0:2], shstr[2:4]),
             ))
+            # add plugin defined tags...
+            meta_dict.update(template_tags(metadata))
             # push metadata layer up...
             if "metadata" in meta_dict:
                 meta_dict.update(meta_dict["metadata"])
@@ -270,7 +282,8 @@ class MoverTask(Task, Logged):
                 .replace("$dst_data_path", dest_data_path)   \
                 .replace("$src_data_path", src_data_path)   \
                 .replace("$dst_rel_path", dest_rel_path) \
-                .replace("$adler32_checksum", adler32_checksum)
+                .replace("$adler32_checksum", adler32_checksum) \
+                .replace("$file_size", str(file_size) )
             #self.debug("copy command:", copy_cmd)
 
             self.timestamp("transferring data")
@@ -281,7 +294,14 @@ class MoverTask(Task, Logged):
                 return self.failed("Data copy failed: %s" % (output,))
 
             self.log("data transfer complete")
-            
+            try:    
+                dest_size = self.get_file_size(self.DestServer, dest_data_path)
+                self.debug("Destination data file size:", dest_size)
+            except Exception as e:
+                return self.failed(f"Can not get file size at the destination: {e}")
+
+            if dest_size != file_size:
+                 return self.failed("Transferred file has wrong size")            
         else:
             self.log("data file already exists at the destination and has correct size. Not overwriting")
 
