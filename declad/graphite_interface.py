@@ -103,7 +103,7 @@ class GraphiteInterface:
 
 class GraphiteSender(PyThread, Logged):
 
-    Events = ("done", "quarantined", "failed")
+    Events = ("done", "quarantined", "failed", "extracted")
 
     def __init__(self, config, history_db):
         Logged.__init__(self, "GraphiteSender")
