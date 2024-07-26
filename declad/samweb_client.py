@@ -52,7 +52,7 @@ class SAMWebClient(Logged):
         response = requests.post(
             self.URL + "/files", 
             data=data,
-            headers=self.headers(),
+            headers=self.headers({"Accept":"application/json", "Content-Type":"application/json"}),
 			cert=self.CertTuple
         )
         if response.status_code // 100 in (4,5):
