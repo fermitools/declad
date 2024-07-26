@@ -90,6 +90,7 @@ class MoverTask(Task, Logged):
             meta["run_number"] = rl[0]
             rt = meta.get("core.run_type", meta.get("dh.type", "mc"))
             meta["run_type"] = rt
+        meta_dict.update(template_tags(metadata))
         return self.RucioConfig["dataset_did_template"] % meta
 
     def undid(self, did):
