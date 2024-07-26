@@ -12,6 +12,7 @@ from logs import Logged
 from xrootd_scanner import XRootDScanner
 from lfn2pfn import lfn2pfn
 from datetime import datetime, timezone
+from rucio.common.exception import DataIdentifierAlreadyExists, DuplicateRule, FileAlreadyExists
 
 # import a template_tags() routine if present, otherwise nothing local..
 try:
@@ -38,6 +39,7 @@ class MoverTask(Task, Logged):
         self.Config = config
         self.MetaSuffix = config.get("meta_suffix", ".json")
         self.RucioConfig = config.get("rucio", {})
+        self.Activity = self.RucioConfig.get("activity", "")
         self.SAMConfig = config.get("samweb", {})
         self.QuarantineLocation = config.get("quarantine_location")
         self.SourceServer = config["source_server"]
@@ -207,8 +209,6 @@ class MoverTask(Task, Logged):
             assert type == "adler32"
             adler32_checksum = value
 
-        dataset_scope = get_dataset_scope(self.FileDesc, metadata, self.Config)
-        
 
         # EOS expects URL to have double slashes: root://host:port//path/to/file
         src_data_path = self.FileDesc.path(self.SrcRootPath)
@@ -294,7 +294,6 @@ class MoverTask(Task, Logged):
                 return self.failed("Data copy failed: %s" % (output,))
 
             self.log("data transfer complete")
-
             try:    
                 dest_size = self.get_file_size(self.DestServer, dest_data_path)
                 self.debug("Destination data file size:", dest_size)
@@ -302,8 +301,7 @@ class MoverTask(Task, Logged):
                 return self.failed(f"Can not get file size at the destination: {e}")
 
             if dest_size != file_size:
-                 return self.failed("Transferred file has wrong size")
-            
+                 return self.failed("Transferred file has wrong size")            
         else:
             self.log("data file already exists at the destination and has correct size. Not overwriting")
 
@@ -386,10 +384,59 @@ class MoverTask(Task, Logged):
                     self.debug("locate_file failed:\n", traceback.format_exc())
 
         #
+        # get handles for rucio/metacat if we're doing them
+        #
+        do_declare_to_metacat = self.Config.get("declare_to_metacat", True)
+        if do_declare_to_metacat:
+            mclient = metacat_client.client(self.Config)
+        do_declare_to_rucio = self.RucioConfig.get("declare_to_rucio", True)
+        if do_declare_to_rucio:
+            rclient = rucio_client.client(self.RucioConfig)
+        #
+        # create dataset if does not exist
+        #
+        dataset_did = self.rucio_dataset_did( self.FileDesc, metadata)
+        dataset_scope, dataset_name = dataset_did.split(":")
+
+        self.log(f"dataset: {dataset_scope}:{dataset_name} vs {self.last_created_dataset}")
+        if f"{dataset_scope}:{dataset_name}" != self.last_created_dataset:
+            self.last_created_dataset = f"{dataset_scope}:{dataset_name}" 
+            if mclient is not None:
+                # create in metacat first...
+                try:
+                    mclient.create_dataset(f"{dataset_scope}:{dataset_name}")
+                except metacat_client.AlreadyExistsError:
+                    pass
+
+            if rclient is not None:
+                try:    
+                    rclient.add_did(dataset_scope, dataset_name, "DATASET")
+                except DataIdentifierAlreadyExists:
+                    pass
+                except Exception as e:
+                    return self.quarantine(f"Error in creating Rucio dataset {dataset_scope}:{dataset_name}: {e}")
+            
+                else:
+                    self.log(f"Rucio dataset {dataset_scope}:{dataset_name} created")
+
+                for target_rse in self.RucioConfig["target_rses"]:
+                    try:
+                        rdict = {"scope":dataset_scope, "name":dataset_name}
+                        if self.Activity:
+                            self.log(f"adding rule with activity {self.Activity}")
+                            rclient.add_replication_rule([rdict], 1, target_rse, activity=self.Activity)
+                        else:
+                            self.log(f"adding rule with out activity")
+                            rclient.add_replication_rule([rdict], 1, target_rse)
+                    except DuplicateRule:
+                        pass
+                    except Exception as e:
+                        return self.quarantine(f"Error in creating Rucio replication rule -> {target_rse}: {e}")
+                    else:
+                        self.log(f"replication rule -> {target_rse} created")
+        #
         # declare to MetaCat
         #
-        mclient = metacat_client.client(self.Config)
-        do_declare_to_metacat = self.Config.get("declare_to_metacat", True)
         if mclient is not None:
             if do_declare_to_metacat:
                 self.timestamp("declaring to MetaCat")
@@ -400,7 +447,6 @@ class MoverTask(Task, Logged):
                     else:
                         self.log("already declared to MetaCat")
                 else:
-                    dataset_did = metacat_dataset(self.FileDesc, metadata, self.Config)
                     metacat_meta = metacat_metadata(self.FileDesc, metadata, self.Config)   # massage meta if needed
                     file_info = {
                             "namespace":    file_scope,
@@ -430,47 +476,13 @@ class MoverTask(Task, Logged):
         #
         # declare to Rucio
         #
-        rclient = rucio_client.client(self.RucioConfig)
-        do_declare_to_rucio = self.RucioConfig.get("declare_to_rucio", True)
         if rclient is not None:
 
             if do_declare_to_rucio:
-                from rucio.common.exception import DataIdentifierAlreadyExists, DuplicateRule, FileAlreadyExists
                 #print(rclient.whoami())
 
                 self.timestamp("declaring to Rucio")
 
-                # create dataset if does not exist
-                dataset_scope, dataset_name = self.undid(self.rucio_dataset_did(self.FileDesc, metacat_meta))
-
-                if f"{dataset_scope}:{dataset_name}" != self.last_created_dataset:
-                    self.last_created_dataset = f"{dataset_scope}:{dataset_name}" 
-                    if mclient is not None:
-                        # create in metacat first...
-                        try:
-                            mclient.create_dataset(f"{dataset_scope}:{dataset_name}")
-                        except metacat_client.AlreadyExistsError:
-                            pass
-
-                    try:    rclient.add_did(dataset_scope, dataset_name, "DATASET")
-                    except DataIdentifierAlreadyExists:
-                        pass
-                    except Exception as e:
-                        return self.quarantine(f"Error in creating Rucio dataset {dataset_scope}:{dataset_name}: {e}")
-                    
-                    else:
-                        self.log(f"Rucio dataset {dataset_scope}:{dataset_name} created")
-
-                    for target_rse in self.RucioConfig["target_rses"]:
-                        try:
-                            rclient.add_replication_rule([{"scope":dataset_scope, "name":dataset_name}], 1, target_rse)
-                        except DuplicateRule:
-                            pass
-                        except Exception as e:
-                            return self.quarantine(f"Error in creating Rucio replication rule -> {target_rse}: {e}")
-                        else:
-                            self.log(f"replication rule -> {target_rse} created")
-                
                 # declare file replica to Rucio
                 drop_rse = self.RucioConfig["drop_rse"]
                 rclient.add_replica(drop_rse, file_scope, filename, file_size, adler32_checksum)
