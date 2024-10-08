@@ -385,7 +385,7 @@ class MoverTask(Task, Logged):
         #
         # create dataset if does not exist
         #
-        metacat_dataset_did = custom.metadata_dataset( self.FileDesc, metadata, self.config)
+        metacat_dataset_did = custom.metacat_dataset( self.FileDesc, metadata, self.config)
         dataset_scope, dataset_name = metacat_dataset_did.split(":")
 
         self.log(f"metacat dataset: {dataset_scope}:{dataset_name} vs {self.last_created_metacat_dataset}")
