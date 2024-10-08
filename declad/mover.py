@@ -299,8 +299,10 @@ class MoverTask(Task, Logged):
         #
         file_id = None
         
-        sclient = samweb_client.client(self.SAMConfig)
         do_declare_to_sam = self.Config.get("declare_to_sam", True)
+        if do_declare_to_sam:
+            sclient = samweb_client.client(self.SAMConfig)
+
         if sclient is not None:
             self.timestamp("declaring to SAM")
             existing_sam_meta = sclient.get_file(filename)
@@ -376,6 +378,7 @@ class MoverTask(Task, Logged):
         do_declare_to_metacat = self.Config.get("declare_to_metacat", True)
         if do_declare_to_metacat:
             mclient = metacat_client.client(self.Config)
+
         do_declare_to_rucio = self.RucioConfig.get("declare_to_rucio", True)
         if do_declare_to_rucio:
             rclient = rucio_client.client(self.RucioConfig)
@@ -461,6 +464,7 @@ class MoverTask(Task, Logged):
                     except Exception as e:
                         return self.failed(f"MetaCat declaration failed: {e}")
                     self.log("file declared to MetaCat")
+
             else:
                 self.debug("would declare to MetaCat")
                 self.debug("Name, namespace, fid:", filename, file_scope, file_id)
@@ -482,12 +486,6 @@ class MoverTask(Task, Logged):
                 self.log(f"File replica declared in drop rse {drop_rse}")
 
                 # add the file to the dataset
-                if mclient is not None:
-                    try:
-                        mclient.add_files(f"{dataset_scope}:{dataset_name}",[{"namespace":file_scope, "name": filename}])
-                    except metacat_client.AlreadyExistsError:
-                        self.log("File was already attached to the MetaCat dataset")
-                        pass
                 try:
                     rclient.attach_dids(dataset_scope, dataset_name, [{"scope":file_scope, "name":filename}])
                 except FileAlreadyExists:
