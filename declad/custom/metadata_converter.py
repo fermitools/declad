@@ -57,7 +57,10 @@ def convert_runs_mc_sam( runs, md):
     srcount=0
     for r in runs:
         rn = r
-        sr = mysubruns[srcount] % m
+        if srcount < len(mysubruns):
+            sr = mysubruns[srcount] % m
+        else:
+            sr = srcount
         srcount += 1
         res.append( [rn, sr, typ] )
     return res
