@@ -41,10 +41,11 @@ class SAMWebClient(Logged):
         else:
             url = self.URL + f"/files/id/{id}/metadata?format=json"
         response = requests.get(url, headers=self.headers())
+        # self.debug(f"get_file: response.status_code = {response.status_code}\nresponse.text = {response.text} \n response.json() = {response.json()}")
         if response.status_code // 100 in (4,5):
-            return response.json()
-        else:
             return None
+        else:
+            return response.json()
 
     def declare(self, metadata, location=None):
         data = json.dumps(metadata, indent=1, sort_keys=True)
@@ -55,10 +56,17 @@ class SAMWebClient(Logged):
             headers=self.headers({"Accept":"application/json", "Content-Type":"application/json"}),
 			cert=self.CertTuple
         )
-        if response.status_code // 100 in (4,5):
+        if response.status_code == 409 and response.text.find("FileAlreadyExists"):
+             exist_metadata = self.get_file(name=file_name)
+             
+             # self.debug(f"Exsting file: {file_name} got metadata:{repr(exist_metadata)}")
+             file_id = exist_metadata["file_id"]
+        elif response.status_code // 100 in (4,5):
             raise SAMDeclarationError("SAM declaration error", response.text)
-        response.raise_for_status()
-        file_id = response.text.strip()
+        else:
+            response.raise_for_status()
+            file_id = response.text.strip()
+
         
         if location:
             self.add_location(location, id=file_id)
@@ -112,7 +120,7 @@ class SAMWebClient(Logged):
         return [l.get('location') or l['full_path'] for l in data]
 
     def file_exists(self, name):
-        return self.get_file(name) is not None
+        return self.get_file(name=name) is not None
         
     def files_exist(self, names):
         url = self.URL + "/files/metadata"

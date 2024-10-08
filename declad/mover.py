@@ -385,7 +385,7 @@ class MoverTask(Task, Logged):
         #
         # create dataset if does not exist
         #
-        metacat_dataset_did = custom.metacat_dataset( self.FileDesc, metadata, self.config)
+        metacat_dataset_did = custom.metacat_dataset( self.FileDesc, metadata, self.Config)
         dataset_scope, dataset_name = metacat_dataset_did.split(":")
 
         self.log(f"metacat dataset: {dataset_scope}:{dataset_name} vs {self.last_created_metacat_dataset}")
@@ -398,8 +398,8 @@ class MoverTask(Task, Logged):
                 except metacat_client.AlreadyExistsError:
                     pass
 
-        rucio_dataset_did = custom.rucio_dataset(self.FileDesc, metadata, self.config)
-        dataset_scope, dataset_name = dataset_did.split(":")
+        rucio_dataset_did = custom.rucio_dataset(self.FileDesc, metadata, self.Config)
+        dataset_scope, dataset_name = rucio_dataset_did.split(":")
 
         self.log(f"rucio dataset: {dataset_scope}:{dataset_name} vs {self.last_created_rucio_dataset}")
         if f"{dataset_scope}:{dataset_name}" != self.last_created_rucio_dataset:
@@ -453,7 +453,7 @@ class MoverTask(Task, Logged):
                         }
                     if file_id is not None:
                         file_info["fid"] = str(file_id)
-                    self.debug("about to mclient.declare_files dataset_did %s with file_info: %s" % (dataset_did, repr(file_info)))
+                    self.debug("about to mclient.declare_files dataset_did %s with file_info: %s" % (metacat_dataset_did, repr(file_info)))
                     try:    
                         file_info = mclient.declare_file(
                             fid=file_id, namespace=file_scope, name=filename, 
