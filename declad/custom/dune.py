@@ -153,6 +153,10 @@ def rucio_dataset(desc, metadata, config):
         rt = meta.get("core.run_type", meta.get("dh.type", "mc"))
         meta["run_type"] = rt
     meta.update(template_tags(metadata))
+    # if our metadata specifies a dataset, use that; see:
+    # https://github.com/fermitools/declad/issues/35
+    if meta.get("dune.dataset_name", ""):
+        return meta["dune.dataset_name"]
     return config["rucio"]["dataset_did_template"] % meta
 
 def metacat_dataset(desc, metadata, config):
