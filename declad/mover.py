@@ -457,8 +457,9 @@ class MoverTask(Task, Logged):
                     try:    
                         file_info = mclient.declare_file(
                             fid=file_id, namespace=file_scope, name=filename, 
-                            metadata=metacat_meta, 
-                            dataset_did=metacat_dataset_did,
+                            metadata=metacat_meta,
+                            dataset_did=metacat_dataset_did,           
+                            parents=metadata.get("parents", []),
                             size=file_size, checksums={ "adler32":  adler32_checksum }
                         )
                     except Exception as e:
