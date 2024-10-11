@@ -73,15 +73,16 @@ def convert_parents_sam_mc( parents):
         })
     return res
 
+
 def convert_parents_mc_sam( parents, md):
-    """ special case: parentage conversion"""
-    res = []
-    for i in parents:
-        res.append( {
-           "file_id": i["file_id"],
-           "file_name": i["name"]
-        })
-    return res
+     """ special case: parentage conversion"""
+     res = []
+     for i in parents:
+         d = { "file_name": i["name"] }
+         if str(int(i.get("fid","0"))) == i.get("fid","y"):
+             d["file_id"] = int(i["fid"])
+         res.append(d)
+     return res
 
 
 class MetadataConverter:
