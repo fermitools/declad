@@ -57,7 +57,6 @@ download_command_template:      "xrdcp --force --silent root://$server/$src_path
 quarantine_location:            /dune/scratch/dunepro/ingest/quarantine
 
 metacat_url:    https://metacat.fnal.gov:9443/dune_meta_prod/app
-rucio_url:      https://dune-rucio.fnal.gov
 
 sam_location_template: dcache:/pnfs/dune/persistent/staging/$dst_rel_dir
 
