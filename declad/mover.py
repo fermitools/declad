@@ -465,6 +465,7 @@ class MoverTask(Task, Logged):
                             fid=file_id, namespace=file_scope, name=filename, 
                             metadata=metacat_meta, 
                             dataset_did=dataset_did,
+                            parents=metadata.get("parents", []),
                             size=file_size, checksums={ "adler32":  adler32_checksum }
                         )
                     except Exception as e:
