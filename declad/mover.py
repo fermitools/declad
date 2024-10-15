@@ -1,5 +1,5 @@
 try:
-    from custom import metacat_metadata, sam_metadata, get_file_scope, get_dataset_scope, metacat_dataset
+    import custom
 except:
     raise AttributeError("Unable to import 'custom', did you forget to symlink experiment.py as __init__.py?")
 
@@ -30,7 +30,8 @@ class MoverTask(Task, Logged):
     RequiredMetadata = [["checksum","checksums"], ["file_size","size"], ["runs","core.runs", "rs.runs"]]
     DefaultMetaSuffix = ".json"
     # remember last dataset we created in to reduce repeats
-    last_created_dataset = None 
+    last_created_rucio_dataset = None 
+    last_created_metacat_dataset = None 
     
     def __init__(self, config, filedesc):
         Task.__init__(self, filedesc)
@@ -78,22 +79,6 @@ class MoverTask(Task, Logged):
     def name(self):
         return self.FileDesc.Name
         
-    def rucio_dataset_did(self, desc, metadata):
-        meta = metadata.copy()
-        if "metadata" in metadata:
-            meta.update(metadata["metadata"])
-        if isinstance(meta.get("runs",[None])[0], list):
-            # if it is sam style run list, get run number and type
-            meta["run_number"] = meta["runs"][0][0]
-            meta["run_type"] = meta["runs"][0][2]
-        else:
-            # if it is metacat style run list, get run number and type
-            rl = meta.get("core.runs", meta.get("rs.runs", [0]))
-            meta["run_number"] = rl[0]
-            rt = meta.get("core.run_type", meta.get("dh.type", "mc"))
-            meta["run_type"] = rt
-        meta.update(template_tags(metadata))
-        return self.RucioConfig["dataset_did_template"] % meta
 
     def undid(self, did):
         return did.split(":", 1)
@@ -188,11 +173,11 @@ class MoverTask(Task, Logged):
         # Convert to MetaCat format
         #
         try:
-            metacat_meta = metacat_metadata(self.FileDesc, metadata, self.Config)   # massage meta if needed
+            metacat_meta = custom.metacat_metadata(self.FileDesc, metadata, self.Config)   # massage meta if needed
         except Exception as e:
             return self.quarantine(f"Error converting metadata to MetaCat: {e}")
 
-        try:    file_scope = get_file_scope(self.FileDesc, metadata, self.Config)
+        try:    file_scope = custom.get_file_scope(self.FileDesc, metadata, self.Config)
         except Exception as e:
             return self.quarantine("can not get file scope. Error: %s. Metadata runs: %s" % (e.what(), metadata.get("runs"),))
             
@@ -314,8 +299,10 @@ class MoverTask(Task, Logged):
         #
         file_id = None
         
-        sclient = samweb_client.client(self.SAMConfig)
         do_declare_to_sam = self.Config.get("declare_to_sam", True)
+        if do_declare_to_sam:
+            sclient = samweb_client.client(self.SAMConfig)
+
         if sclient is not None:
             self.timestamp("declaring to SAM")
             existing_sam_meta = sclient.get_file(filename)
@@ -335,7 +322,7 @@ class MoverTask(Task, Logged):
                 else:
                     self.log("already delcared to SAM with the same size/checksum")
             else:
-                s_metadata = sam_metadata(self.FileDesc, metadata, self.Config)
+                s_metadata = custom.sam_metadata(self.FileDesc, metadata, self.Config)
                 if do_declare_to_sam:
                     self.log(f"trying to declare to SAM: {repr(s_metadata)}")
                     try:    file_id = sclient.declare(s_metadata)
@@ -391,18 +378,19 @@ class MoverTask(Task, Logged):
         do_declare_to_metacat = self.Config.get("declare_to_metacat", True)
         if do_declare_to_metacat:
             mclient = metacat_client.client(self.Config)
+
         do_declare_to_rucio = self.RucioConfig.get("declare_to_rucio", True)
         if do_declare_to_rucio:
             rclient = rucio_client.client(self.RucioConfig)
         #
         # create dataset if does not exist
         #
-        dataset_did = self.rucio_dataset_did( self.FileDesc, metadata)
-        dataset_scope, dataset_name = dataset_did.split(":")
+        metacat_dataset_did = custom.metacat_dataset( self.FileDesc, metadata, self.Config)
+        dataset_scope, dataset_name = metacat_dataset_did.split(":")
 
-        self.log(f"dataset: {dataset_scope}:{dataset_name} vs {self.last_created_dataset}")
-        if f"{dataset_scope}:{dataset_name}" != self.last_created_dataset:
-            self.last_created_dataset = f"{dataset_scope}:{dataset_name}" 
+        self.log(f"metacat dataset: {dataset_scope}:{dataset_name} vs {self.last_created_metacat_dataset}")
+        if f"{dataset_scope}:{dataset_name}" != self.last_created_metacat_dataset:
+            self.last_created_metacat_dataset = f"{dataset_scope}:{dataset_name}" 
             if mclient is not None:
                 # create in metacat first...
                 try:
@@ -410,9 +398,16 @@ class MoverTask(Task, Logged):
                 except metacat_client.AlreadyExistsError:
                     pass
 
+        rucio_dataset_did = custom.rucio_dataset(self.FileDesc, metadata, self.Config)
+        dataset_scope, dataset_name = rucio_dataset_did.split(":")
+
+        self.log(f"rucio dataset: {dataset_scope}:{dataset_name} vs {self.last_created_rucio_dataset}")
+        if f"{dataset_scope}:{dataset_name}" != self.last_created_rucio_dataset:
             if rclient is not None:
                 try:    
+                    added = False
                     rclient.add_did(dataset_scope, dataset_name, "DATASET")
+                    added = True
                 except DataIdentifierAlreadyExists:
                     pass
                 except Exception as e:
@@ -420,7 +415,6 @@ class MoverTask(Task, Logged):
             
                 else:
                     self.log(f"Rucio dataset {dataset_scope}:{dataset_name} created")
-
                 for target_rse in self.RucioConfig["target_rses"]:
                     try:
                         rdict = {"scope":dataset_scope, "name":dataset_name}
@@ -449,7 +443,7 @@ class MoverTask(Task, Logged):
                     else:
                         self.log("already declared to MetaCat")
                 else:
-                    metacat_meta = metacat_metadata(self.FileDesc, metadata, self.Config)   # massage meta if needed
+                    metacat_meta = custom.metacat_metadata(self.FileDesc, metadata, self.Config)   # massage meta if needed
                     file_info = {
                             "namespace":    file_scope,
                             "name":         filename,
@@ -459,18 +453,19 @@ class MoverTask(Task, Logged):
                         }
                     if file_id is not None:
                         file_info["fid"] = str(file_id)
-                    self.debug("about to mclient.declare_files dataset_did %s with file_info: %s" % (dataset_did, repr(file_info)))
+                    self.debug("about to mclient.declare_files dataset_did %s with file_info: %s" % (metacat_dataset_did, repr(file_info)))
                     try:    
                         file_info = mclient.declare_file(
                             fid=file_id, namespace=file_scope, name=filename, 
-                            metadata=metacat_meta, 
-                            dataset_did=dataset_did,
+                            metadata=metacat_meta,
+                            dataset_did=metacat_dataset_did,           
                             parents=metadata.get("parents", []),
                             size=file_size, checksums={ "adler32":  adler32_checksum }
                         )
                     except Exception as e:
                         return self.failed(f"MetaCat declaration failed: {e}")
                     self.log("file declared to MetaCat")
+
             else:
                 self.debug("would declare to MetaCat")
                 self.debug("Name, namespace, fid:", filename, file_scope, file_id)
@@ -492,12 +487,6 @@ class MoverTask(Task, Logged):
                 self.log(f"File replica declared in drop rse {drop_rse}")
 
                 # add the file to the dataset
-                if mclient is not None:
-                    try:
-                        mclient.add_files(f"{dataset_scope}:{dataset_name}",[{"namespace":file_scope, "name": filename}])
-                    except metacat_client.AlreadyExistsError:
-                        self.log("File was already attached to the MetaCat dataset")
-                        pass
                 try:
                     rclient.attach_dids(dataset_scope, dataset_name, [{"scope":file_scope, "name":filename}])
                 except FileAlreadyExists:
