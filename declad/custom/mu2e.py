@@ -64,8 +64,8 @@ def metacat_dataset(desc, metadata, config):
 
 def template_tags(metadata):
     res = {}
-    mhstr = hashlib.md5(metadata['name']).encode('utf-8')).hexdigest()
-    shstr = hashlib.sha256(metadata['name']).encode('utf-8')).hexdigest()
+    mhstr = hashlib.md5(metadata['name'].encode('utf-8')).hexdigest()
+    shstr = hashlib.sha256(metadata['name'].encode('utf-8')).hexdigest()
     res["fo_md5hash"] = "%s/%s" % (mhstr[0:2], mhstr[2:4]),
     res["fo_sha256hash"] = "%s/%s" % (shstr[0:2], shstr[2:4]),
     if metadata["metadata"]["fn.owner"] == "mu2e":
