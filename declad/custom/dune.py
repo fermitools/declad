@@ -162,3 +162,8 @@ def rucio_dataset(desc, metadata, config):
 def metacat_dataset(desc, metadata, config):
     return rucio_dataset(desc, metadata, config)
 
+def template_tags(metadata):
+    res = {}
+    # define any tags hre
+    return res
+
