@@ -105,12 +105,11 @@ class MoverTask(Task, Logged):
         return scanner.getFileSize(path)
 
     def run(self):
-        self.log("Log testing...")
         # import a template_tags() routine if present, otherwise nothing local..
         try:
             from custom import template_tags
         except:
-            self.log("No template_tags callout in custom.py; adding default one...")
+            self.log("Notice: no template_tags callout in custom.py; adding default empty one...")
             def template_tags(metadata):
                 return {}
 
