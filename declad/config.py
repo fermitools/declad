@@ -1,11 +1,19 @@
 import yaml
 import sys
 
+try:
+    from custom import custom_config_keys
+except:
+    def custom_config_keys():
+        return set()
+
 class Config(dict):
     _valid_keys = set( [
         "copy_command_template",
         "create_dirs_command_template",
         "debug_enabled",
+        "declare_to_metacat",
+        "declare_to_sam",
         "default_category",
         "delete_command_template",
         "destination_root_path",
@@ -47,6 +55,7 @@ class Config(dict):
         "scanner.ls_command_template",
         "scanner.metadata_extractor_log",
         "scanner.metadata_extractor",
+        "scanner.meta_suffix",
         "scanner.parse_re",
         "scanner.filename_patterns",
         "scanner.filename_pattern",
@@ -61,6 +70,7 @@ class Config(dict):
     ])
 
     def __init__(self, config_file):
+        Config._valid_keys = Config._valid_keys | custom_config_keys()
         with open(config_file, "r") as cff:
             cfg = yaml.load(cff , Loader=yaml.SafeLoader)
         self.check(cfg)
