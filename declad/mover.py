@@ -302,6 +302,8 @@ class MoverTask(Task, Logged):
         do_declare_to_sam = self.Config.get("declare_to_sam", True)
         if do_declare_to_sam:
             sclient = samweb_client.client(self.SAMConfig)
+        else:
+            sclient = None
 
         if sclient is not None:
             self.timestamp("declaring to SAM")
@@ -378,10 +380,14 @@ class MoverTask(Task, Logged):
         do_declare_to_metacat = self.Config.get("declare_to_metacat", True)
         if do_declare_to_metacat:
             mclient = metacat_client.client(self.Config)
+        else:
+            mclient = None
 
         do_declare_to_rucio = self.RucioConfig.get("declare_to_rucio", True)
         if do_declare_to_rucio:
             rclient = rucio_client.client(self.RucioConfig)
+        else:
+            rclient = None
         #
         # create dataset if does not exist
         #
