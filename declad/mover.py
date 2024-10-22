@@ -1,5 +1,6 @@
 try:
     import custom
+    assert(custom.__file__)
 except:
     raise AttributeError("Unable to import 'custom', did you forget to symlink experiment.py as __init__.py?")
 
@@ -14,12 +15,6 @@ from lfn2pfn import lfn2pfn
 from datetime import datetime, timezone
 from rucio.common.exception import DataIdentifierAlreadyExists, DuplicateRule, FileAlreadyExists
 
-# import a template_tags() routine if present, otherwise nothing local..
-try:
-    from custom import template_tags
-except:
-    def template_tags(metadata):
-        return {}
 
 from pythreader import version_info as pythreader_version_info
 #if pythreader_version_info < (2,15,0):
@@ -36,6 +31,7 @@ class MoverTask(Task, Logged):
     def __init__(self, config, filedesc):
         Task.__init__(self, filedesc)
         Logged.__init__(self, name=f"MoverTask[{filedesc.Name}]")
+
         self.FileDesc = filedesc
         self.Config = config
         self.MetaSuffix = config.get("meta_suffix", ".json")
@@ -61,6 +57,7 @@ class MoverTask(Task, Logged):
         self.KeepUntil = None           # keep in memory until this time
         self.DefaultCategory = config.get("default_category")       # default metadata category for unexpeted uncategorized metadata attrs
         self.timestamp("created")
+
 
     def last_event(self, name=None):
         if self.EventLog:
@@ -108,6 +105,14 @@ class MoverTask(Task, Logged):
         return scanner.getFileSize(path)
 
     def run(self):
+        # import a template_tags() routine if present, otherwise nothing local..
+        try:
+            from custom import template_tags
+        except:
+            self.log("Notice: no template_tags callout in custom.py; adding default empty one...")
+            def template_tags(metadata):
+                return {}
+
         #self.debug("started")
         self.timestamp("started")
         self.Failed = False
