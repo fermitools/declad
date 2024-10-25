@@ -1,5 +1,8 @@
 import os, sys, re, time
 
+# =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+# support code...
+
 class patchit:
     """ context manager for applying / removing a patch"""
     def __init__(self, base, patchfile):
@@ -13,39 +16,64 @@ class patchit:
             os.system("cd {self.base} && patch -R -p1 < {patchfile}");
 
 # regexps for watch_log...
-re_nfiles  = re.compile(r"scanner returned [1-9] file descriptors")
+re_nfiles  = re.compile(r"scanner returned [1-9][0-9]* file descriptors")
 re_extract = re.compile(r"Running:.*demo_meta_extractor.sh")
-re_cpcmd   = re.compile(r"runCommand: xrdcp.*[0-9].txt")
+re_cmd     = re.compile(r"runCommand: ")
 re_after   = re.compile(r"known files before and after: [1-9]")
 re_trace   = re.compile(r"Traceback")
+re_xfer_s  = re.compile(r"transferring data")
+re_xfer_e  = re.compile(r"data transfer complete")
 
-def watch_log(lf, ext_flag):
-    state = 0
+def readline_wait(fd):
+    # do tail -f style read...
+    res = fd.readline()
+    count = 0
+    while not res:
+        count = count + 1
+        if count > 20:
+            return ""
+        time.sleep(10)
+        res = fd.readline()
+    return res
+
+def watch_log(lf, ext_flag, nfiles):
 
     if not os.path.exists(lf):
         return False
 
-    let_logfile_grow(lf)
+    state = 0
+    completed_count = 0
 
     with open(lf, "r") as lfd:
-        for line in lfd.readlines():
-            print(f"saw: {line}")
+        while ( line :=  readline_wait( lfd ) ):
+            #print(f"saw: {line}")
             if re_trace.search(line):
-                raise AssertionError("Saw Traceback in log")
+                print("Saw Traceback in log")
+                return False
 
             if re_nfiles.search(line) and state == 0:
                 print(f"watch_log => 1: {line}")
                 state = 1
 
-            if  ext_flag and re_extract.search(line) and state == 1:
+            if ext_flag and re_extract.search(line) and state == 1:
                 print(f"watch_log => 2: {line}")
                 state = 2
 
-            if re_cpcmd.search(line) and state == (2 if extflag else 1):
+            if re_cmd.search(line):
+                print(f"watch_log: {line}")
+
+            if state in (1,2) and re_xfer_s.search(line):
                 print(f"watch_log => 3: {line}")
                 state = 3
 
-            if re_after.search(line) and state == 3:
+            if state == 3 and re_xfer_e.search(line):
+                 print(f"watch_log: {line}")
+                 completed_count = completed_count + 1
+                 if completed_count == nfiles:
+                     print(f"watch_log => 4")
+                     state = 4
+
+            if state == 4 and re_after.search(line):
                 print(f"watch_log => done: {line}")
                 # saw everything we expected
                 return True
@@ -59,24 +87,14 @@ def cleanup_dirs(dlist):
             os.rmdir(d)
         except:
             return False
+    return True
 
 def run(cmd):
     print(f"Running: {cmd}")
     os.system(cmd)
 
-def let_logfile_grow( lf ):
-    """ if logfile is growing, wait up to 3 minutes..."""
-    oldsize = 0
-    time.sleep(2)
-    size  = os.stat(lf)[6]
-    if size > oldsize:
-        time.sleep(330)   # just sleep a little over 5 minutes for now.
-    size  = os.stat(lf)[6]
-    print(f"log size {size}, returning...")
-    return
 
-
-def generic_case( base, custom, patchfile, generator, nfiles, ext_flag, fail):
+def generic_case( base, custom, patchfile, generator, nfiles, ext_flag, fail = False):
 
     res = False
     # setup custom module link
@@ -96,16 +114,15 @@ def generic_case( base, custom, patchfile, generator, nfiles, ext_flag, fail):
             pass
         run(f"cd {base} && ./restart.sh")
 
-        try:
-           res = watch_log(f"{base}/logs/declad.log", ext_flag)
-        except:
-           res = False
+        res = watch_log(f"{base}/logs/declad.log", ext_flag, nfiles)
 
         run(f"cd {base} && ./stop.sh")
 
     # cleanup to not confuse later tests, and to make sure
     # dropbox/quarantine are empty
     if not cleanup_dirs([f"{base}/dropbox", f"{base}/quarantine"]):
+        print("plain rmdir failed on dropbox or quarantine...")
+        os.system(f"ls -al {base}/dropbox {base}/quarantine")
         os.system(f"rm -rf {base}/dropbox {base}/quarantine")
         res = False
     os.mkdir(f"{base}/dropbox")
@@ -113,15 +130,27 @@ def generic_case( base, custom, patchfile, generator, nfiles, ext_flag, fail):
 
     assert( res != fail )
 
+
+# =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+# actual tests, mostly written with generic_case, above
 base = "/home/hypotpro/declad_848"
 
-
 def test_no_custom_init_py_fails():
+    # this is the test for issue #12
     generic_case(base, None, None, "make_test_ext_data.sh", 5, True, True)
     with open(f"{base}/logs/nohup.out") as f:
         data = f.read()
     assert(data.find("did you forget to symlink") > 0)
 
 def test_hypot_extractor():
-    generic_case(base, "hypot", None, "make_test_ext_data.sh", 5, True, False)
+    # test for issue #17
+    generic_case(base, "hypot", None, "make_test_ext_data.sh", 5, True)
+
+def test_hypot_json_meta():
+    # test using new metadata issue #10
+    generic_case(base, "hypot", None, "make_test_newdata.sh", 5, False)
+
+def test_hypot_json_ups():
+    # basic test using old ups-style metadata
+    generic_case(base, "hypot", None, "make_test_data.sh", 5, False)
 

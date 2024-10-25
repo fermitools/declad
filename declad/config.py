@@ -64,6 +64,7 @@ class Config(dict):
         "source_root_path",
         "source_server",
         "transfer_timeout",
+        "transfer_proto",
         "web_gui.prefix",
         "web_gui.site_title",
         "web_gui.port",

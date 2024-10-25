@@ -4,6 +4,7 @@ try:
 except:
     raise AttributeError("Unable to import 'custom', did you forget to symlink experiment.py as __init__.py?")
 
+import re
 from pythreader import PyThread, synchronized, Primitive, Task, TaskQueue
 from tools import runCommand
 import json, hashlib, traceback, time, os, pprint, textwrap
@@ -41,6 +42,7 @@ class MoverTask(Task, Logged):
         self.QuarantineLocation = config.get("quarantine_location")
         self.SourceServer = config["source_server"]
         self.DestServer = config.get("destination_server") or self.SourceServer
+        self.TransferProto = config.get("transfer_proto","root")
         
         # source and destination paths in xrootd namespace
         self.SrcRootPath = config["source_root_path"]
@@ -101,8 +103,21 @@ class MoverTask(Task, Logged):
         return '%s/%s/%s/%s' % (scope, hstr[0:2], hstr[2:4], name)
         
     def get_file_size(self, server, path):
-        scanner = XRootDScanner(server, self.Config["scanner"])
-        return scanner.getFileSize(path)
+        if self.TransferProto == 'root':
+            scanner = XRootDScanner(server, self.Config["scanner"])
+            return scanner.getFileSize(path)
+        elif self.TransferProto == 'https':
+            stat_command = f"gfal-stat https://{server}/{path}"
+            self.log(f"Running {stat_command}")
+            status, out = runCommand(stat_command, self.TransferTimeout, self.debug)
+            lines = [x.strip() for x in out.split("\n")]
+            for line in lines:
+                self.log(f"stat line: {line}")
+                if line.find("Size:") >= 0:
+                    fields = re.split(r"\s+", line)
+                    self.log(f"found size {fields[1]}")
+                    return int(fields[1])
+        return None
 
     def run(self):
         # import a template_tags() routine if present, otherwise nothing local..
@@ -230,11 +245,11 @@ class MoverTask(Task, Logged):
             raise ValueError(f"Unknown relative path function {rel_path_function}. Accepted: hash or template")
         dest_data_path = dest_root_path + "/" + dest_rel_path
         dest_dir_abs_path = dest_data_path.rsplit("/", 1)[0]  
-        data_dst_url = "root://" + self.DestServer + "/" + dest_data_path     
+        data_dst_url = self.TransferProto + "://" + self.DestServer + "/" + dest_data_path     
         if self.SourceServer is None or self.SourceServer == "localhost":
             data_src_url = "file:///" + src_data_path
         else:
-            data_src_url = "root://" + self.SourceServer + "/" + src_data_path
+            data_src_url = self.TransferProto + "://" + self.SourceServer + "/" + src_data_path
         
         #
         # check if the dest data file exists and has correct size
