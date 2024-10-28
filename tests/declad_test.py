@@ -1,4 +1,4 @@
-import os, sys, re, time
+import os, sys, re, time, glob
 
 # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 # support code...
@@ -6,14 +6,20 @@ import os, sys, re, time
 class patchit:
     """ context manager for applying / removing a patch"""
     def __init__(self, base, patchfile):
+        patchfile = f"{prefix}/tests/patches/{patchfile}"
+        print(f"(patchit( {base}, {patchfile})...")
         self.patchfile = patchfile
         self.base = base
     def __enter__(self):
         if self.patchfile:
-            os.system("cd {self.base} && patch -p1 < {patchfile}");
+            cmd = f"cd {self.base} && patch -p1 < {self.patchfile}"
+            print(f"patchit: cmd: {cmd}")
+            os.system(cmd);
     def __exit__(self,*args):
         if self.patchfile:
-            os.system("cd {self.base} && patch -R -p1 < {patchfile}");
+            cmd = f"cd {self.base} && patch -R -p1 < {self.patchfile}"
+            print(f"patchit: cmd: {cmd}")
+            os.system(cmd);
 
 # regexps for watch_log...
 re_nfiles  = re.compile(r"scanner returned [1-9][0-9]* file descriptors")
@@ -82,6 +88,7 @@ def watch_log(lf, ext_flag, nfiles):
     return False
 
 def cleanup_dirs(dlist):
+    print(f"cleaning dirs: {dlist}")
     for d in dlist:
         try:
             os.rmdir(d)
@@ -120,7 +127,8 @@ def generic_case( base, custom, patchfile, generator, nfiles, ext_flag, fail = F
 
     # cleanup to not confuse later tests, and to make sure
     # dropbox/quarantine are empty
-    if not cleanup_dirs([f"{base}/dropbox", f"{base}/quarantine"]):
+    hashdirs = glob.glob(f"{base}/dropbox/??")
+    if not cleanup_dirs(hashdirs + [f"{base}/dropbox", f"{base}/quarantine"]):
         print("plain rmdir failed on dropbox or quarantine...")
         os.system(f"ls -al {base}/dropbox {base}/quarantine")
         os.system(f"rm -rf {base}/dropbox {base}/quarantine")
@@ -152,14 +160,15 @@ def test_hypot_json_meta():
     generic_case(base, "hypot", None, "make_test_newdata.sh", 5, False)
 
 def test_dune_json_meta():
-    # test using new metadata issue #10
+    """ test using custom/dune.py for custom """
     generic_case(base, "dune", None, "make_test_newdata.sh", 5, False)
 
 def test_mu2e_json_meta():
-    # test using new metadata issue #10
+    """ test using custom/metacat.py for custom """
     generic_case(base, "mu2e", None, "make_test_newdata.sh", 5, False)
 
 def test_hypot_json_ups():
-    # basic test using old ups-style metadata
     generic_case(base, "hypot", None, "make_test_data.sh", 5, False)
 
+def test_hypot_json_hash_meta():
+    generic_case(base, "hypot", "config_hashdir.patch", "make_test_hash_newdata.sh", 5, False)
