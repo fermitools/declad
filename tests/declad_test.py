@@ -19,10 +19,10 @@ class patchit:
 re_nfiles  = re.compile(r"scanner returned [1-9][0-9]* file descriptors")
 re_extract = re.compile(r"Running:.*demo_meta_extractor.sh")
 re_cmd     = re.compile(r"runCommand: ")
-re_after   = re.compile(r"known files before and after: [1-9]")
 re_trace   = re.compile(r"Traceback")
 re_xfer_s  = re.compile(r"transferring data")
 re_xfer_e  = re.compile(r"data transfer complete")
+re_after   = re.compile(r"known files before and after: [1-9]")
 
 def readline_wait(fd):
     # do tail -f style read...
@@ -134,6 +134,7 @@ def generic_case( base, custom, patchfile, generator, nfiles, ext_flag, fail = F
 # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 # actual tests, mostly written with generic_case, above
 base = "/home/hypotpro/declad_848"
+prefix = os.path.dirname(os.path.dirname(__file__))
 
 def test_no_custom_init_py_fails():
     # this is the test for issue #12
@@ -149,6 +150,14 @@ def test_hypot_extractor():
 def test_hypot_json_meta():
     # test using new metadata issue #10
     generic_case(base, "hypot", None, "make_test_newdata.sh", 5, False)
+
+def test_dune_json_meta():
+    # test using new metadata issue #10
+    generic_case(base, "dune", None, "make_test_newdata.sh", 5, False)
+
+def test_mu2e_json_meta():
+    # test using new metadata issue #10
+    generic_case(base, "mu2e", None, "make_test_newdata.sh", 5, False)
 
 def test_hypot_json_ups():
     # basic test using old ups-style metadata

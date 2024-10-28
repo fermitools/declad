@@ -509,6 +509,7 @@ class MoverTask(Task, Logged):
 
                 # declare file replica to Rucio
                 drop_rse = self.RucioConfig["drop_rse"]
+                self.log(f"calling add_replica( {drop_rse}, {file_scope}, {filename}, {file_size}, {adler32_checksum})")
                 rclient.add_replica(drop_rse, file_scope, filename, file_size, adler32_checksum)
                 self.log(f"File replica declared in drop rse {drop_rse}")
 
