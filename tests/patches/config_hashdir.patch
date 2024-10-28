@@ -1,0 +1,11 @@
+--- a/declad_config.yaml	2024-10-28 16:55:21.668400939 -0500
++++ b/declad_config.yaml	2024-10-28 16:55:02.507526464 -0500
+@@ -71,7 +71,7 @@
+   replace_location:                                  # replace Dropbox location with this in path for local scanner
+   path: /home/hypotpro/declad_848/dropbox
+   location: /home/hypotpro/declad_848/dropbox
+-  ls_command_template: "ls -ln $location"               # with $server and $location 
++  ls_command_template: "cd $location && ls -ln ??/*"               # with $server and $location 
+   parse_re:              "^(?P<type>[a-z-])\\S+\\s+\\d+\\s+\\d+\\s+\\d+\\s+(?P<size>\\d+)\\s+\\S.{11}\\s(?P<path>\\S+)$"                                          
+                                                      # regexp for "ls" / "xrdfs" ls  output                                          
+   filename_patterns:                                # filename pattern(s) to watch for
