@@ -1,5 +1,5 @@
 PRODUCT = declad
-VERSION = 2.1.1
+VERSION = 2.3.3
 BUILD_HOME = $(HOME)/build
 BUILD_DIR = $(BUILD_HOME)/$(PRODUCT)
 TEMPLATES_DIR = $(BUILD_DIR)/templates
@@ -33,6 +33,7 @@ build: $(BUILD_DIR) $(TEMPLATES_DIR)
 	cp $(FILES) $(BUILD_DIR)
 	cp -R logs $(BUILD_DIR)
 	cp -R custom $(BUILD_DIR)
+	cp -R static $(BUILD_DIR)
 	cp templates/*.html $(TEMPLATES_DIR)
 	chmod +x $(BUILD_DIR)/declad.py
 
