@@ -209,7 +209,8 @@ class App(WPApp):
             globals={
                 "GLOBAL_Version": Version, 
                 "GLOBAL_SiteTitle": self.Config.get("site_title", "Declaration Daemon"),
-                "GLOBAL_URL_Prefix": self.Prefix or ""
+                #"GLOBAL_URL_Prefix": self.Prefix or ""
+                "GLOBAL_URL_Prefix": "."
             },
             filters = {
                 "as_dt_utc": as_dt_utc,
