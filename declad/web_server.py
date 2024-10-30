@@ -1,12 +1,14 @@
 from webpie import WPApp, WPHandler, WPStaticHandler
 from version import Version
-import pprint, json, time
+import pprint, json, time, os
+
+prefix=os.path.dirname(__file__)
 
 class Handler(WPHandler):
     
     def __init__(self, request, app):
         WPHandler.__init__(self, request, app)
-        self.static = WPStaticHandler(request, app)
+        self.static = WPStaticHandler(request, app, root=prefix +"/static")
 
     def current(self, request, relpath, **args):
         transfers = self.App.current_transfers()
