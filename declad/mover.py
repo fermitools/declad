@@ -5,6 +5,7 @@ except:
     raise AttributeError("Unable to import 'custom', did you forget to symlink experiment.py as __init__.py?")
 
 import re
+import fadvise
 from pythreader import PyThread, synchronized, Primitive, Task, TaskQueue
 from tools import runCommand
 import json, hashlib, traceback, time, os, pprint, textwrap
@@ -300,7 +301,10 @@ class MoverTask(Task, Logged):
                 return self.failed("Data copy failed: %s" % (output,))
 
             # tell system buffer cache we're done with file
-            fadvise.dontneed(dest_src_path, dest_data_path)
+            
+            if self.Config["scanner"].get("type") == "local":
+                fadvise.dontneed(dest_src_path)
+                fadvise.dontneed(dest_data_path)
 
             self.log("data transfer complete")
             try:    
@@ -577,7 +581,8 @@ class MoverTask(Task, Logged):
 
         src_path = self.FileDesc.path(self.SrcRootPath)
         # tell buffer cache to drop this file
-        fadvise.dontneed(src_path)
+        if self.Config["scanner"].get("type") == "local":
+            fadvise.dontneed(src_path)
 
         if self.QuarantineLocation:
 
