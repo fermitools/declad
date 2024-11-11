@@ -303,8 +303,8 @@ class MoverTask(Task, Logged):
             # tell system buffer cache we're done with file
             
             if self.Config["scanner"].get("type") == "local":
-                self.debug(f"calling fadvise.dontneed('{src_data_path)')")
-                fadvise.dontneed(src_data_path)
+                self.log(f"calling fadvise.dontneed('{src_data_path}')")
+                fadvise.dontneed(src_data_path).close()
 
             self.log("data transfer complete")
             try:    
@@ -582,7 +582,7 @@ class MoverTask(Task, Logged):
         src_path = self.FileDesc.path(self.SrcRootPath)
         # tell buffer cache to drop this file
         if self.Config["scanner"].get("type") == "local":
-            fadvise.dontneed(src_path)
+            fadvise.dontneed(src_path).close()
 
         if self.QuarantineLocation:
 
