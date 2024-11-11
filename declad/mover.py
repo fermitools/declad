@@ -303,8 +303,8 @@ class MoverTask(Task, Logged):
             # tell system buffer cache we're done with file
             
             if self.Config["scanner"].get("type") == "local":
-                fadvise.dontneed(dest_src_path)
-                fadvise.dontneed(dest_data_path)
+                self.debug(f"calling fadvise.dontneed('{src_data_path)')")
+                fadvise.dontneed(src_data_path)
 
             self.log("data transfer complete")
             try:    
