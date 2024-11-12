@@ -5,6 +5,7 @@ except:
     raise AttributeError("Unable to import 'custom', did you forget to symlink experiment.py as __init__.py?")
 
 import re
+import fadvise
 from pythreader import PyThread, synchronized, Primitive, Task, TaskQueue
 from tools import runCommand
 import json, hashlib, traceback, time, os, pprint, textwrap
@@ -299,6 +300,12 @@ class MoverTask(Task, Logged):
             if ret:
                 return self.failed("Data copy failed: %s" % (output,))
 
+            # tell system buffer cache we're done with file
+            
+            if self.Config["scanner"].get("type") == "local":
+                self.log(f"calling fadvise.dontneed('{src_data_path}')")
+                fadvise.dontneed(src_data_path).close()
+
             self.log("data transfer complete")
             try:    
                 dest_size = self.get_file_size(self.DestServer, dest_data_path)
@@ -571,10 +578,15 @@ class MoverTask(Task, Logged):
         # quarantine data only. we can leave the metadata in place
         self.Error = reason or self.Error
         self.Failed = True
+
+        src_path = self.FileDesc.path(self.SrcRootPath)
+        # tell buffer cache to drop this file
+        if self.Config["scanner"].get("type") == "local":
+            fadvise.dontneed(src_path).close()
+
         if self.QuarantineLocation:
 
             # quarantine the metadata file
-            src_path = self.FileDesc.path(self.SrcRootPath)
             meta_path = src_path + self.MetaSuffix
             qmeta_path = self.QuarantineLocation + "/" + self.FileDesc.Name + self.MetaSuffix
             if self.FileDesc.Server is None:

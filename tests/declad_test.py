@@ -6,7 +6,8 @@ import os, sys, re, time, glob
 class patchit:
     """ context manager for applying / removing a patch"""
     def __init__(self, base, patchfile):
-        patchfile = f"{prefix}/tests/patches/{patchfile}"
+        if patchfile:
+            patchfile = f"{prefix}/tests/patches/{patchfile}"
         print(f"(patchit( {base}, {patchfile})...")
         self.patchfile = patchfile
         self.base = base
