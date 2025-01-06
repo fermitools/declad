@@ -559,7 +559,7 @@ class MoverTask(Task, Logged):
         if self.Config["scanner"].get("type") == "local":
             self.log(f"calling fadvise w/ dontneed for {src_data_path}")
             with open(src_data_path) as pf:
-                os.python_fadvise(src_data_path.fileno(), 0, 0, os.POSIX_FADV_DONTNEED)
+                os.posix_fadvise(src_data_path.fileno(), 0, 0, os.POSIX_FADV_DONTNEED)
     @synchronized
     def timestamp(self, event, info=None):
         self.EventDict[event] = self.LastUpdate = t =  time.time()
