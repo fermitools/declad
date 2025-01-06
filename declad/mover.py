@@ -5,7 +5,6 @@ except:
     raise AttributeError("Unable to import 'custom', did you forget to symlink experiment.py as __init__.py?")
 
 import re
-import fadvise
 from pythreader import PyThread, synchronized, Primitive, Task, TaskQueue
 from tools import runCommand
 import json, hashlib, traceback, time, os, pprint, textwrap
@@ -300,11 +299,7 @@ class MoverTask(Task, Logged):
             if ret:
                 return self.failed("Data copy failed: %s" % (output,))
 
-            # tell system buffer cache we're done with file
-            
-            if self.Config["scanner"].get("type") == "local":
-                self.log(f"calling fadvise.dontneed('{src_data_path}')")
-                fadvise.dontneed(src_data_path).close()
+            self.donewith(src_data_path)
 
             self.log("data transfer complete")
             try:    
@@ -558,6 +553,13 @@ class MoverTask(Task, Logged):
         self.Manager = None
         self.timestamp("complete")
 
+    def donewith(self, src_data_path):
+        """ tell system buffer cache we"re done with file """
+
+        if self.Config["scanner"].get("type") == "local":
+            self.log(f"calling fadvise w/ dontneed for {src_data_path}")
+            with open(src_data_path) as pf:
+                os.python_fadvise(src_data_path.fileno(), 0, 0, os.POSIX_FADV_DONTNEED)
     @synchronized
     def timestamp(self, event, info=None):
         self.EventDict[event] = self.LastUpdate = t =  time.time()
@@ -581,9 +583,7 @@ class MoverTask(Task, Logged):
 
         src_path = self.FileDesc.path(self.SrcRootPath)
         # tell buffer cache to drop this file
-        if self.Config["scanner"].get("type") == "local":
-            fadvise.dontneed(src_path).close()
-
+        self.donewith(src_data_path)
         if self.QuarantineLocation:
 
             # quarantine the metadata file
