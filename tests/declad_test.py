@@ -173,3 +173,4 @@ def test_hypot_json_ups():
 
 def test_hypot_json_hash_meta():
     generic_case(base, "hypot", "config_hashdir.patch", "make_test_hash_newdata.sh", 5, False)
+
