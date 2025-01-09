@@ -130,16 +130,24 @@ def sam_metadata(desc, metadata, config):
     return out
 
 def get_file_scope(desc, metadata, config):
-    if isinstance(metadata.get("runs",[None])[0],list):
+    if metadata.get("namespace",""):
+        return metadata["namespace"]
+    elif isinstance(metadata.get("runs",[None])[0],list):
         return metadata["runs"][0][2]
     else:
         return metadata["metadata"]["core.run_type"]
 
 def get_dataset_scope(desc, metadata, config):
+    if metadata.get("dune.dataset_name",""):
+        dune_dataset = metadata.get("dune.dataset_name")
+        if ':' in dune_dataset:
+            return dune_dataset.split(":")[0]
+        else:
+            return  get_file_scope(desc, metadata, config)
     return get_file_scope(desc, metadata, config)
 
 def rucio_dataset(desc, metadata, config):
-    meta = metadata.copy()
+    meta = metadata.copy()  
     if "metadata" in metadata:
         meta.update(metadata["metadata"])
     if isinstance(meta.get("runs",[None])[0], list):
