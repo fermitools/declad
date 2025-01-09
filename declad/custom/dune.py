@@ -147,7 +147,7 @@ def get_dataset_scope(desc, metadata, config):
     return get_file_scope(desc, metadata, config)
 
 def rucio_dataset(desc, metadata, config):
-    meta = metadata.copy()  
+    meta = metadata.copy()
     if "metadata" in metadata:
         meta.update(metadata["metadata"])
     if isinstance(meta.get("runs",[None])[0], list):
