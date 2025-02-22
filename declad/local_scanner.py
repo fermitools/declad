@@ -135,7 +135,7 @@ class LocalScanner(PyThread, Logged):
                         for fn in data_files:
                             if not fn in out_files and fn in prev_data_files and not fn in extracted:
                                 #  its been in 2 passes with no metadata found...
-                                extract_list.append(fn)
+                                extract_list.append(data_files[fn].OrigPath)
                                 extracted.add(fn)
 
                                 # log in history/prometheus... assume extraction takes 1 sec
