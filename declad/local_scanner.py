@@ -119,6 +119,7 @@ class LocalScanner(PyThread, Logged):
                                 metadata_files.add(data_name)
 
                     self.log("found %d matching files" % (len(out_files),))
+                    self.log("found %d data files" % (len(data_files),))
             
                     if out_files:
                         #self.debug("sending files:")
