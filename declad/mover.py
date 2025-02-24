@@ -583,7 +583,7 @@ class MoverTask(Task, Logged):
 
         src_path = self.FileDesc.path(self.SrcRootPath)
         # tell buffer cache to drop this file
-        self.donewith(src_data_path)
+        self.donewith(src_path)
         if self.QuarantineLocation:
 
             # quarantine the metadata file
