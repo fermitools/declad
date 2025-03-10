@@ -16,13 +16,18 @@ do
     else
 	echo "$(date -u) demo-metadata-extractor: generating ${fname}.json"
 
+	case $fname in
+	/*) ;;
+	*) fname=$drobpox/$fname
+	esac
+
         # adding just the minmium metadata to make our declad_config happy
 
-	fsize=$(stat --format '%s' ${dropbox}/${fname})
-	chksum=$(xrdadler32 ${dropbox}/${fname} | sed -e 's/ .*//')
-	cat > ${dropbox}/${fname}.json <<EOF
+	fsize=$(stat --format '%s' ${fname})
+	chksum=$(xrdadler32 ${fname} | sed -e 's/ .*//')
+	cat > ${fname}.json <<EOF
 {
-"name": "$fname",
+"name": "$(basename $fname)",
 "namespace": "hypotpro",
 "size": $fsize,
 "checksums": {"adler32": "$chksum"},

@@ -156,6 +156,7 @@ def test_hypot_extractor():
     # test for issue #17
     generic_case(base, "hypot", None, "make_test_ext_data.sh", 5, True)
 
+
 def test_hypot_json_meta():
     # test using new metadata issue #10
     generic_case(base, "hypot", None, "make_test_newdata.sh", 5, False)
@@ -174,3 +175,6 @@ def test_hypot_json_ups():
 def test_hypot_json_hash_meta():
     generic_case(base, "hypot", "config_hashdir.patch", "make_test_hash_newdata.sh", 5, False)
 
+def test_hypot_extractor_subdirs():
+    # test for issue #60
+    generic_case(base, "hypot", "config_hashdir.patch", "make_test_ext_data.sh --subdirs", 5, True)
