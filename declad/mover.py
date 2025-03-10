@@ -558,8 +558,13 @@ class MoverTask(Task, Logged):
 
         if self.Config["scanner"].get("type") == "local":
             self.log(f"calling fadvise w/ dontneed for {src_data_path}")
-            with open(src_data_path) as pf:
-                os.posix_fadvise(pf.fileno(), 0, 0, os.POSIX_FADV_DONTNEED)
+            try:
+                with open(src_data_path) as pf:
+                    os.posix_fadvise(pf.fileno(), 0, 0, os.POSIX_FADV_DONTNEED)
+            except OSError as e:
+                self.log(f"Error {str(e)} from open/fadvise on {src_data_path} ignored.")
+                pass
+
     @synchronized
     def timestamp(self, event, info=None):
         self.EventDict[event] = self.LastUpdate = t =  time.time()
@@ -583,7 +588,7 @@ class MoverTask(Task, Logged):
 
         src_path = self.FileDesc.path(self.SrcRootPath)
         # tell buffer cache to drop this file
-        self.donewith(src_data_path)
+        self.donewith(src_path)
         if self.QuarantineLocation:
 
             # quarantine the metadata file
