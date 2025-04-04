@@ -13,6 +13,7 @@ do
 
 fname="hypotpro_declad_test_${ds}_${i}.txt"
 dropbox=/home/hypotpro/declad_848/dropbox
+dropbox=/tmp/dropbox
 
 cat > ${dropbox}/${fname} <<EOF
 test file $fname

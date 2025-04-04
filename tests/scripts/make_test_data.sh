@@ -12,6 +12,7 @@ do
 
 fname="etc_txt_hypotpro_declad_test_c20240219_$ds$i.txt"
 dropbox=/home/hypotpro/declad_848/dropbox
+dropbox=/tmp/dropbox
 
 cat > ${dropbox}/${fname} <<EOF
 test file $fname

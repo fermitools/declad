@@ -232,6 +232,7 @@ class MoverTask(Task, Logged):
                 name = filename,
                 md5hash = "%s/%s" % (mhstr[0:2], mhstr[2:4]),
                 sha256hash = "%s/%s" % (shstr[0:2], shstr[2:4]),
+                dropbox_relpath =  self.FileDesc.RelPath
             ))
             # add plugin defined tags...
             meta_dict.update(template_tags(metadata))
