@@ -16,7 +16,7 @@ source_server: "localhost"                         # host part of $src_url for t
 create_dirs_command_template: ":" # command template using $server and  $path, 
                                   # use ":" if destination auto-creates directories
                                   
-copy_command_template:  "xrdcp --cksum adler32:$adler32_checksum $src_url $dst_url"     # copy command 
+copy_command_template:  "xrdcp --force --cksum adler32:$adler32_checksum $src_url $dst_url"     # copy command 
 download_command_template: "cp $src_path $dst_path"   # metadata file download command, with $server $src_path, $dst_path
 delete_command_template: "rm $path"                   # clean files out of Dropbox, with $server and $path 
 quarantine_location: /home/hypotraw/quarantine        # location for files / metadata that don't match, etc.
