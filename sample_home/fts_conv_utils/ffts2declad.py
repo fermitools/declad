@@ -71,12 +71,12 @@ class Converter:
      def write_metadata_extractor():
          mdout = "extractor.py"
          with open(mdout, "w") as mdefd:
-             mdefd.write("from declad_utils import globs2re, use_extractor\n")
+             mdefd.write("from declad_utils import wildcard_to_regex, use_extractor\n")
              mdefd.write("import sys\n\n")
              mdefd.write("extre = {}\n")
              for mde in self.extractor_filepatterns:
                  fps = "'" + "', '".join(self.extractor_filepatterns[extractor]) + "'"
-                 mdefd.write(f"extre['{mde}'] = globs2re({fps}\n")
+                 mdefd.write(f"extre['{mde}'] = wildcard_to_regex({fps}\n")
              mdefd.write("for fname in sys.argv:\n")
              mdefd.write("    for mde in extre:\n")
              mdefd.write("        m = extre[mde].match(fname)\n")
@@ -86,7 +86,7 @@ class Converter:
              
      def write_custom_file():
          with open(cfout, "w") as cffd:
-             cffd.write("from declad_utils import globs2re")
+             cffd.write("from declad_utils import wildcard_to_regex")
              cffd.write("import sys\n\n")
              cffd.write("cfgre = {}\n")
              cffd.write("dstp = {}\n")
