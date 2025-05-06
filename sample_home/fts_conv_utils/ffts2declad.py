@@ -75,7 +75,7 @@ class Converter:
              mdefd.write("import sys\n\n")
              mdefd.write("extre = {}\n")
              for mde in self.extractor_filepatterns:
-                 fps = "'" + "', '".join(self.extractor_filepatterns[extractor]) + "'"
+                 fps = "['" + "', '".join(self.extractor_filepatterns[extractor]) + "']"
                  mdefd.write(f"extre['{mde}'] = wildcard_to_regex({fps}\n")
              mdefd.write("for fname in sys.argv:\n")
              mdefd.write("    for mde in extre:\n")
@@ -91,8 +91,8 @@ class Converter:
              cffd.write("cfgre = {}\n")
              cffd.write("dstp = {}\n")
              for ft in self.ftsfp:
-                 fts =  "'" + "', '".join(self.ftsfp[ft]) + "'"
-                 cffd.write("cfgre['{ft}'] = glob2re({fts})\n")
+                 fts =  "['" + "', '".join(self.ftsfp[ft]) + "']"
+                 cffd.write("cfgre['{ft}'] = wildcard_to_regex({fts})\n")
                  cffd.write("dstp['{ft}'] = {}\n")
              cffd.write("def template_tags(metadata):\n")
              cffd.write("    res = {}\n")
