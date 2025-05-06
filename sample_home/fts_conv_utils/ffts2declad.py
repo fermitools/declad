@@ -2,6 +2,7 @@
 
 import argparse
 import configparser
+import yaml
 
 
 class Converter:
@@ -18,6 +19,16 @@ class Converter:
         self.dest = {}
         self.constparts = {}
         self.mdparts = {}
+        self.copy_commands = { 
+         "xrdcp": 
+           "xrdcp --cksum adler32:$adler32_checksum $src_url $dst_url",
+         "gfal": 
+           "gfal-copy --checksum adler32:$adler32_checksum $src_url $dst_url",
+        }
+        # these should come from... comand line options?
+        self.copy_type = "xrdcp"
+        self.exp = "hypot"
+        self.drop_rse = "FNAL_SCRATCH"
 
     def cross_reference(self):
         for ft in self.filetypes:
@@ -36,37 +47,29 @@ class Converter:
                  self.extractor_filepatterns[extractor].add(fp)
                  self.ftsfp[ft].add(fp)
 
-            self.dest[ft] = self.config[sect]["transfer-to"]
+            self.dest[ft] = [self.config[sect]["transfer-to"]]
+            self.src[ft] = self.config[sect]["scan-dirs"].strip().split(' ')
             self.unify_dests()
 
-
-    def unify_dests(self):
-        # go thorough filetype destinations, come up with 3 parts
-        # * common prefix (i.e. /pnfs/nova/production/
-        # * hardcoded parts per filetype
-        # * metadata parts per filetype
-        # then try to unify path components
+    def common_prefix(self, dlist):
         firstcomps = []
         last_common_comp = 99
-        # first establish common prefix
         for ft in self.filetypes:
-            comps = self.dest[ft].split('/')[1:]
-            if not firstcomps:
-                firstcomps = comps
-            for i in range(1,min(last_common_comp, len(comps)):
-                if comps[i] != firstcomps[i]:
-                    last_common_comp = i
-                    break
+            for d in dlist[ft]:
+                comps = d.split('/')[1:]
+                if not firstcomps:
+                    firstcomps = comps
+                for i in range(1,min(last_common_comp, len(comps)):
+                    if comps[i] != firstcomps[i]:
+                        last_common_comp = i
         last_common_comp += 1
+        return '/' + '/'.join(firstcomps[:last_commmon_comp])
+       
 
-        for ft in self.filetypes:
-            comps = self.dest[ft].split('/')[1:]
-            for i in range(len(comps)-1,-1,-1):
-                if not comps[i].startswith('$'):
-                    self.constparts[ft] = '/'.join(comps[last_common_comps:i+1]
-                    self.mdparts[ft] = '/'.join(comps[i+1:])
-            
-         self.common_prefix = '/' + '/'.join(firstcomps[:maxcomps])
+    def unify_dests(self):
+        self.common_dest_prefix = self.common_prefix(self.dest)
+        self.common_src_prefix = self.common_prefix(self.src)
+         
 
      def write_metadata_extractor():
          mdout = "extractor.py"
@@ -103,8 +106,57 @@ class Converter:
              cffd.write("           break\n")
              cffd.write("    return res\n")
             
-     def write_declad_cfg():
-         
+     def write_declad_cfg(dst_host ="destination_server"):
+         cfg = {
+           "debug_enabled": True,
+           "default_category": "migrated",
+           "destination_root_path": self.common_dest_prefix,
+           "destination_server": f"fndcadoor.{self.local_domain}",
+           "source_root_path": self.common_src_prefix,
+           "source_server": "localhost",       # f-fts always is local
+           "crate_dirs_command_template": ":", # assume auto-create
+           "copy_command_template": self.copy_commands[self.copy_type],
+           "download_command_template": "cp $src_path $dst_path",
+           "delete_command_template": "rm $path",
+           "quarantine_location": self.common_src_prefix + "/../quarantine",
+           "metacat_namepsace": self.exp,
+           "metacat_url": f:"https://metacat.{self.local_domain}:9443/{self.exp}_meta_prod/app",
+           "rel_path_function": "template",
+           "rel_path_pattern": f"%(custom_subdir)/{self.metadata_bits}",
+           "log": "logs/declad.log",
+           "rucio": {
+              "activity": "Production",
+              "dataset_did_template": "%(dataset_did)",
+              "declare_to_rucio": True,
+              "target_rses": []
+              "drop_rse": self.drop_rse
+           },
+           "samweb": {
+              "user": os.environ["USER"],
+              "url": f"https://sam{self.exp}.{self.local_domain}:8483/sam/{self.exp}/api/",
+              "cert": "certs/xxx-cert.pem",
+              "key": "certs/xxx-key.pem",
+           }
+           "scanner": { 
+               "type": "local",
+               "replace_location": True,
+               "path": self.common_src_prefix,
+               "locaton": self.common_src_prefix,
+               "ls_command_template": "find {self.alldirs} -type f -ls",
+               "parse_re": "^(?P<type>[a-z-])\\S+\\s+\\d+\\s+\\d+\\s+\\d+\\s+(?P<size>\\d+)\\s+\\S.{11}\\s(?P<path>\\S+)$",
+               "filename_patterns": list(self.filepatterns),
+               "metadata_extractor": "declad_metadata_extractor.py",
+               "metadata_extractor_log": "log/metadata_extractor.log",
+           },
+           "web_gui": {
+               "prefix": "/declad",
+               "site_title": "Declaration Daemon",
+               "port": 8443,
+            }
+        }
+        with os.open("declad.yaml", "w") as outf:
+            outf.write(yaml.dump(cfg))
+             
 
 def main():
     aparser = argparse.ArgumentParser()
