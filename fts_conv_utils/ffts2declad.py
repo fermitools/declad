@@ -86,35 +86,89 @@ class Converter:
             mdefd.write("from declad_utils import wildcard_list_to_re, use_extractor\n")
             mdefd.write("import sys\n\n")
             mdefd.write("extre = {}\n")
+
             for mde in self.extractor_filepatterns:
                 if mde:
-                    fps = "['" + "', '".join(self.extractor_filepatterns[mde]) + "']"
+                    expats = sorted(list(self.extractor_filepatterns[mde]))
+                    fps = "['" + "', '".join(expats)+ "']"
                     mdefd.write(f"extre['{mde}'] = wildcard_list_to_re({fps})\n")
             mdefd.write("for fname in sys.argv:\n")
             mdefd.write("    for mde in extre:\n")
-            mdefd.write("        m = extre[mde].match(fname)\n")
-            mdefd.write("        if m:\n")
+            mdefd.write("        if extre[mde].match(fname):\n")
             mdefd.write("            use_extractor(mde, fname)\n")
             mdefd.write("            break\n")
+        os.system(f"black {mdout}||true")
 
-    def write_custom_file():
+    def write_custom_file(self):
+        cfout = "custom.py"
         with open(cfout, "w") as cffd:
-            cffd.write("from declad_utils import wildcard_list_to_re")
-            cffd.write("import sys\n\n")
-            cffd.write("cfgre = {}\n")
-            cffd.write("dstp = {}\n")
+
+            cffd.write("""
+from declad_utils import wildcard_list_to_re
+import sys
+extre = {}
+
+import custom.metadata_converter 
+import os
+import sys
+def metacat_metadata(desc, metadata, config):
+    if ("size" in metadata and "metadata" in metadata):
+        # already is metacat metadata, just return the metadata part
+        return metadata["metadata"]
+    
+    namespace = config.get("metacat_namespace")
+    res = mc.convert_all_sam_mc(metadata, namespace)  
+    return res["metadata"]
+
+def sam_metadata(desc, metadata, config):
+    if ("metadata" in metadata):
+        # is new style metadata..
+        out = mc.convert_all_mc_sam(metadata)
+    else:
+        out = metadata.copy()
+    out["file_name"] = desc.Name
+    out["user"] = config.get("samweb", {}).get("user", os.getlogin())
+    ck = out.get("checksum")
+    # deal with checksum : "value" vs checksum: "adler32:value" vs checksum: ["adler32:value"]
+    if ck and not isinstance(ck, list):
+        if ':' in ck:
+            type, value = ck.split(':', 1)
+        else:
+            type, value = "adler32", ck
+        out["checksum"] = [f"{type}:{value}"]
+    out.pop("events", None)
+    #print("sam_metadata:"), pprint.pprint(out)
+    return out
+
+def get_file_scope(desc, metadata, config):
+    #return metadata["runs"][0][2]
+    return metadata["creator"]
+
+def get_dataset_scope(desc, metadata, config):
+    return get_file_scope(desc, metadata, config)
+
+def metacat_dataset(desc, metadata, config):
+    return config.get("metacat_dataset")
+
+cfgre = {}
+dstp = {}
+
+""")
             for ft in self.ftsfp:
-                fts = "['" + "', '".join(self.ftsfp[ft]) + "']"
-                cffd.write("cfgre['{ft}'] = wildcard_list_to_re({fts})\n")
-                cffd.write("dstp['{ft}'] = {}\n")
+                fpl = sorted(list(self.ftsfp[ft]))
+                fts = "['" + "', '".join(fpl) + "']"
+                cffd.write(f"cfgre['{ft}'] = wildcard_list_to_re({fts})\n")
+                cffd.write(f"dstp['{ft}'] = {self.dest[ft]}\n")
+
             cffd.write("def template_tags(metadata):\n")
             cffd.write("    res = {}\n")
             cffd.write("    for ft in cfgre:\n")
-            cffd.write("        m = cfgre[ft].match(metadata['name'])\n")
-            cffd.write("        if m:\n")
+            cffd.write("        if cfgre[ft].match(metadata['name']):\n")
             cffd.write("           res['pathmid'] = dstp[ft]\n")
             cffd.write("           break\n")
             cffd.write("    return res\n")
+
+        os.system(f"black {cfout}||true")
 
     def write_declad_cfg(self,dst_host="destination_server"):
         cfg = {
@@ -177,6 +231,7 @@ def main():
     cf.cross_reference()
     cf.write_metadata_extractor()
     cf.write_declad_cfg()
+    cf.write_custom_file()
 
 
 if __name__ == "__main__":
