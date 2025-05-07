@@ -79,6 +79,8 @@ class Converter:
     def unify_dests(self):
         self.common_dest_prefix = self.common_prefix(self.dest)
         self.common_src_prefix = self.common_prefix(self.src)
+        print("common src prefix: ", self.common_src_prefix )
+        print("common dest prefix: ", self.common_dest_prefix )
 
     def write_metadata_extractor(self):
         mdout = "extractor.py"
