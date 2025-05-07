@@ -1,8 +1,11 @@
+import importlib
+import os
 import re
 import sys
-import importlib
 
+# setup so we can import plugins and our mock files
 sys.path.append(os.path.dirname(__file__)+"/plugins")
+sys.path.append(os.path.dirname(__file__)+"/mocks")
 
 def wildcard_list_to_re( wclist: str, subdirpat:str=""  ) -> str: 
     """ 
@@ -36,7 +39,7 @@ def base_metadata(filename, namespace, samish = False):
     size = os.stat(filename).st_size
     with popen("xrdadler32 filename", "r") as fd:
         line = fd.readline().strip()
-        checksum = line[0:line.find(" "))
+        checksum = line[0:line.find(" ")]
     if samish:
         return { "file_name": filename, "file_size": size, "checksum": ["adler32:" + checksum ]}
     else:

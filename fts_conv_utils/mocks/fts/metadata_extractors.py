@@ -3,7 +3,7 @@ class Command_value:
     def __init__(self, output ):
         self._output = output
 
-    def addCallback(self, f)
+    def addCallback(self, f):
         self._output = f(self._output)
         return self
 
