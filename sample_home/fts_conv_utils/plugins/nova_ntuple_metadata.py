@@ -31,7 +31,7 @@ class NovaNTuple(fts.metadata_extractors.MetadataExtractorRunCommand):
         md = json.load(open(jsonfilename))
         defer.returnValue(md)
     except Exception as e:
-      print e
+      print(e)
       print("Exception reading json file")
 
 

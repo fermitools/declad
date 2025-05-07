@@ -1,4 +1,8 @@
 import re
+import sys
+import importlib
+
+sys.path.append(os.path.dirname(__file__)+"/plugins")
 
 def wildcard_list_to_re( wclist: str, subdirpat:str=""  ) -> str: 
     """ 
@@ -15,6 +19,30 @@ def wildcard_list_to_re( wclist: str, subdirpat:str=""  ) -> str:
         reparts.append( repart )
     return re.compile(f"({'|'.join(reparts)})")
 
+
+class fake_filestate:
+    """ Used to pass filename into Fermi-FTS metadata extractor plugins"""
+    def __init__(self, filename):
+        self._filename = filename
+    def getFilename(self):
+        return self._filename
+
+def use_extractor(name, file):
+    mod = importlib.import_module(name)   
+    pass
+
+def base_metadata(filename, namespace, samish = False):
+    """ get file size and checksum metadata for a file from local filesystem """
+    size = os.stat(filename).st_size
+    with popen("xrdadler32 filename", "r") as fd:
+        line = fd.readline().strip()
+        checksum = line[0:line.find(" "))
+    if samish:
+        return { "file_name": filename, "file_size": size, "checksum": ["adler32:" + checksum ]}
+    else:
+        return { "name": filename, "namespace": namespace, "size": size, "checksums": { "adler32": checksum }}
+    
+
 if __name__ == '__main__':
     myre = wildcard_list_to_re( ["a*.root", "b*.root"], "s.*b" )
     # check files which should match
@@ -29,3 +57,4 @@ if __name__ == '__main__':
             print(f"{a} fail")
         else:
             print(f"{a} ok")
+

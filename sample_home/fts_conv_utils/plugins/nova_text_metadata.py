@@ -52,8 +52,8 @@ class NovaText(fts.metadata_extractors.MetadataExtractorRunCommand):
                     defer.returnValue(md)
 
         except Exception as e:
-            print e
-            print 'Exception reading json file, falling back to direct extraction'
+            print(e)
+            print('Exception reading json file, falling back to direct extraction')
 
         # find the executable on the path
         md = _createMetadata(filestate.getFileName(), group, filestate.getFileSize())

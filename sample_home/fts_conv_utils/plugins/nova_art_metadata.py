@@ -25,10 +25,10 @@ def _createMetadata(data, filename, group, filesizebytes):
     if "outplane" in filename:
       try:
         plane = re.search('^.*outplane(\d*).pclist.root', filename).group(1)
-        print "Plane number:", plane, ". Is a transpose file"
+        print( "Plane number:", plane, ". Is a transpose file")
         md['Calibration.PlaneNumber'] = plane
       except:
-        print "No plane number found in transpose file"
+        print( "No plane number found in transpose file")
 
     dumperDict = json.loads(data)
 
@@ -128,8 +128,8 @@ class NovaArt(fts.metadata_extractors.MetadataExtractorRunCommand):
                     defer.returnValue(md)
 
         except Exception as e:
-            print e
-            print 'Exception reading json file, falling back to direct extraction'
+            print( e)
+            print( 'Exception reading json file, falling back to direct extraction')
 
         # find the executable on the path
         mddata = yield self._runCommand("sam_metadata_dumper", filestate.getLocalFilePath())
