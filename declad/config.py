@@ -32,6 +32,7 @@ class Config(dict):
         "metacat_namespace",
         "metacat_url",
         "max_movers",
+        "min_file_size",
         "quarantine_location",
         "rel_path_function",
         "rel_path_pattern",
