@@ -1,0 +1,11 @@
+--- a/declad_config.yaml	2025-05-28 14:55:13
++++ b/declad_config.yaml	2025-05-28 15:07:18
+@@ -14,7 +14,7 @@
+ 
+ source_server: "localhost"                         # host part of $src_url for templates, below, 
+                                                    # use localhost for local dropbox
+-
++min_file_size: 1000
+ create_dirs_command_template: ":" # command template using $server and  $path, 
+                                   # use ":" if destination auto-creates directories
+                                   

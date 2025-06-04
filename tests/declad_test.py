@@ -30,6 +30,7 @@ re_trace   = re.compile(r"Traceback")
 re_xfer_s  = re.compile(r"transferring data")
 re_xfer_e  = re.compile(r"data transfer complete")
 re_after   = re.compile(r"known files before and after: [1-9]")
+re_filesize= re.compile(r"File size is lower than configured")
 
 def readline_wait(fd):
     # do tail -f style read...
@@ -56,6 +57,10 @@ def watch_log(lf, ext_flag, nfiles):
             #print(f"saw: {line}")
             if re_trace.search(line):
                 print("Saw Traceback in log")
+                return False
+
+            if re_filesize.search(line):
+                print("Saw minimum file size error in log")
                 return False
 
             if re_nfiles.search(line) and state == 0:
@@ -120,7 +125,7 @@ def generic_case( base, custom, patchfile, generator, nfiles, ext_flag, fail = F
             os.unlink(f"{base}/logs/declad.log")
         except FileNotFoundError:
             pass
-        run(f"cd {base} && ./restart.sh")
+        run(f"cd {base} && ./restart.sh -d")
 
         res = watch_log(f"{base}/logs/declad.log", ext_flag, nfiles)
 
@@ -178,3 +183,10 @@ def test_hypot_json_hash_meta():
 def test_hypot_extractor_subdirs():
     # test for issue #60
     generic_case(base, "hypot", "config_hashdir.patch", "make_test_ext_data.sh --subdirs", 5, True)
+
+def test_hypot_minfilesize():
+    # test for issue #63
+    generic_case(base, "hypot", "config_minfilesize.patch", "make_test_data.sh", 5, True, True)
+    with open(f"{base}/logs/declad.log") as f:
+        data = f.read()
+    assert(data.find("size is lower than configured minimum") > 0)
