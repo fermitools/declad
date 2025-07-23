@@ -3,6 +3,7 @@
 import argparse
 import configparser
 import os
+import re
 import socket
 import yaml
 
@@ -17,11 +18,14 @@ class Converter:
         self.filepatterns = set()
         self.extractor_filepatterns = {}
         self.ftsfp = {}
+        self.ftscandirs = {}
         self.dest = {}
         self.src = {}
         self.alldirs = []
         self.constparts = {}
         self.mdparts = {}
+        self.max_pos = 0
+        self.pmap = {}
 
         self.local_domain = socket.getfqdn()
         firstdot = self.local_domain.index(".")
@@ -44,10 +48,12 @@ class Converter:
             if not extractor in self.extractor_filepatterns:
                 self.extractor_filepatterns[extractor] = set()
             self.ftsfp[ft] = set()
+            self.ftscandirs[ft] = set()
 
             for sd in self.config[sect].get("scan-dirs","").strip().split(" "):
                 if sd:
                     self.scandirs.add(sd)
+                    self.ftscandirs[ft].add(sd)
 
             for fp in self.config[sect].get("scan-file-patterns","").strip().split(" "):
                 if fp:
@@ -76,11 +82,33 @@ class Converter:
         last_common_comp += 1
         return "/" + "/".join(firstcomps[:last_common_comp])
 
+    def unify_path_components(self):
+        # find the (sort-of) average position of various components
+        # in the path
+        for ft in self.filetypes:
+            for d in self.dest.get(ft, []):
+                # there are ${this/that} bits breaking the split on /
+                d = re.sub(r"(\{[^}]*)/([^}]*\})",r"\1 div \2",d)
+                comps = d.split("/")[1:]
+                for i in range(len(comps)):
+                    if i > self.max_pos:
+                        self.max_pos = i
+                    if not i in self.pmap:
+                        self.pmap[i] = {}                  
+                    if not comps[i] in self.pmap[i]:
+                        self.pmap[i][comps[i]] = set()
+                    self.pmap[i][comps[i]].add(ft)
+        # debugging:
+        #for i in range(self.max_pos+1):
+        #    print(f"{i}:")
+        #    for k in self.pmap[i]:
+        #        pp = repr(self.pmap[i][k]).replace(',',',\n    ')
+        #        print(f"  {k}:\n    {pp}")
+
     def unify_dests(self):
-        self.common_dest_prefix = self.common_prefix(self.dest)
         self.common_src_prefix = self.common_prefix(self.src)
-        print("common src prefix: ", self.common_src_prefix )
-        print("common dest prefix: ", self.common_dest_prefix )
+        self.unify_path_components()
+        #print("common src prefix: ", self.common_src_prefix )
 
     def write_metadata_extractor(self):
         mdout = "extractor.py"
@@ -106,7 +134,7 @@ class Converter:
         with open(cfout, "w") as cffd:
 
             cffd.write("""
-from declad_utils import wildcard_list_to_re
+from declad_utils import wildcard_list_to_re, convert_fts
 import sys
 extre = {}
 
@@ -152,35 +180,52 @@ def get_dataset_scope(desc, metadata, config):
 def metacat_dataset(desc, metadata, config):
     return config.get("metacat_dataset")
 
-cfgre = {}
-dstp = {}
+# Path Component Map
+# ------------------
+# path_comp_math[ position ][ value ] = pattern
+# means that the position-th spot in the path will be (evaluated) value if our 
+# source filepath / filename matches the pattern
+
+path_comp_map = {}
 
 """)
-            for ft in self.ftsfp:
-                fpl = sorted(list(self.ftsfp[ft]))
-                fts = "['" + "', '".join(fpl) + "']"
-                cffd.write(f"cfgre['{ft}'] = wildcard_list_to_re({fts})\n")
-                cffd.write(f"dstp['{ft}'] = {self.dest[ft]}\n")
+            for i in range(self.max_pos):
+                cffd.write(f"path_comp_map[{i}] = {{}}\n")
+                for comp in self.pmap[i]:
+                    # build list of patterns for this component at this position
+                    # we know the fileypes for this component at this position...
+                    fpl = []
+                    for ft in self.pmap[i][comp]:
+                        if self.ftsfp[ft]:
+                            fpl.extend(self.ftsfp[ft])
+                        else:
+                            fpl.extend(self.ftscandirs[ft])
+                    fpl = sorted(fpl)
+                    ffpl = "['" + "', '".join(fpl) + "']"
+                    cffd.write(f"path_comp_map[{i}]['{comp}'] = wildcard_list_to_re({ffpl})\n")
 
             cffd.write("def template_tags(metadata):\n")
             cffd.write("    res = {}\n")
-            cffd.write("    for ft in cfgre:\n")
-            cffd.write("        if cfgre[ft].match(metadata['name']):\n")
-            cffd.write("           res['pathmid'] = dstp[ft]\n")
-            cffd.write("           break\n")
+            cffd.write("    for i in path_comp_map:\n")
+            cffd.write("        for comp in path_comp_map[i]:\n")
+            cffd.write("            if path_comp_map[i][comp].match(metadata[name]):\n")
+            cffd.write("                fcomp = convert_fts(comp, metadata)\n")
+            cffd.write("                res[f'comp_{i}'] = comp\n")
+            cffd.write("                break\n")
             cffd.write("    return res\n")
 
         os.system(f"black {cfout}||true")
 
     def write_declad_cfg(self,dst_host="destination_server"):
+        cmppath = "/".join([ f"%(comp_{i})s" for i in range(self.max_pos)])
         cfg = {
             "debug_enabled": True,
             "default_category": "migrated",
-            "destination_root_path": self.common_dest_prefix,
+            "destination_root_path": "/",
             "destination_server": f"fndcadoor.{self.local_domain}",
             "source_root_path": self.common_src_prefix,
             "source_server": "localhost",  # f-fts always is local
-            "crate_dirs_command_template": ":",  # assume auto-create
+            "create_dirs_command_template": ":",  # assume auto-create
             "copy_command_template": self.copy_commands[self.copy_type],
             "download_command_template": "cp $src_path $dst_path",
             "delete_command_template": "rm $path",
@@ -188,7 +233,7 @@ dstp = {}
             "metacat_namepsace": self.exp,
             "metacat_url": f"https://metacat.{self.local_domain}:9443/{self.exp}_meta_prod/app",
             "rel_path_function": "template",
-            "rel_path_pattern": f"%(custom_subdir)",
+            "rel_path_pattern": cmppath,
             "log": "logs/declad.log",
             "rucio": {
                 "activity": "Production",

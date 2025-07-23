@@ -22,6 +22,63 @@ def wildcard_list_to_re( wclist: str, subdirpat:str=""  ) -> str:
         reparts.append( repart )
     return re.compile(f"({'|'.join(reparts)})")
 
+# This has to work for at least:
+# ----------------------
+# ${CAF.base_release}
+# ${DAQ2RawDigit.base_release}
+# ${file_id[10 div 2]}
+# ${NOVA.decaf_skim}
+# ${Nova.DetectorID}
+# ${NOvA.detectorID}
+# ${NOVA.DetectorID}
+# ${NOVA.Release}
+# ${NOVA.Special}
+# ${Online.Detector}
+# ${Online.Stream[2]}
+# ${run_number}
+# ${run_number div 100[6]}
+# ${Simulated.base_release}
+# ${Simulated.generator}
+# ${Simulated.genietune}
+# Block${laser_scan.block_number[2]}
+# Layer${laser_scan.layer_number[2]}
+#
+def convert_fts(comp, metadata):
+    """ convert things like ${foo/12[6]} to 6th char of (UPS) metadata foo divided by12 """
+    divby = None
+    pickchar1 = None
+    pickchar2 = None
+ 
+    pos = comp.find('[')
+    if pos > 0:
+        pick = comp[pos+1:-1]
+        pos2 = pick.find(' div ')
+        if pos2 > 0:
+            pickchar1 = int(comp[pos+1:pos2])
+            pickchar2 = pickchar1 + int(comp[pos2+5:-1])
+        else
+            pickchar1 = int(comp[pos+1:-1])
+            pickchar2 = pickchar1+1
+        comp = comp[0:pos]
+
+    pos = comp.find(" div ")
+    if pos > 0:
+        divby = comp[pos+5:]
+        comp = comp[0:pos]
+        
+
+    comp = comp.replace('${','%(').replace('}',')s')
+    val = comp % metadata
+    # this is assuming the fields are in the formatting metadata... we might need the
+    # SAM metadata? thats annoying...
+
+    if divby:
+        val = str(int(float(val) / float(divby)))
+
+    if pickchar1:
+        val = val[pickhar1:pickchar2]
+
+    return val
 
 class fake_filestate:
     """ Used to pass filename into Fermi-FTS metadata extractor plugins"""
