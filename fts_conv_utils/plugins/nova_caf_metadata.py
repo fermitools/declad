@@ -1,5 +1,3 @@
-from twisted.internet import defer
-from twisted.python import log
 import sys
 
 import fts.util
@@ -56,4 +54,4 @@ class NovaCAFExtractor(fts.metadata_extractors.MetadataExtractorRunCommand):
         md['group'] = self.group
         return md
 
-novaCAFExtractor = NovaCAFExtractor()
+extractor = NovaCAFExtractor()

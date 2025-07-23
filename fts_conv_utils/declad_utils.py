@@ -56,7 +56,7 @@ def convert_fts(comp, metadata):
         if pos2 > 0:
             pickchar1 = int(comp[pos+1:pos2])
             pickchar2 = pickchar1 + int(comp[pos2+5:-1])
-        else
+        else:
             pickchar1 = int(comp[pos+1:-1])
             pickchar2 = pickchar1+1
         comp = comp[0:pos]
@@ -84,8 +84,12 @@ class fake_filestate:
     """ Used to pass filename into Fermi-FTS metadata extractor plugins"""
     def __init__(self, filename):
         self._filename = filename
-    def getFilename(self):
+    def getFileName(self):
         return self._filename
+    def getLocalFilePath(self):
+        return self._filename
+    def getFileSize(self):
+        return os.stat(self._filename).st_size
 
 def use_extractor(name, file):
     mod = importlib.import_module(name)   

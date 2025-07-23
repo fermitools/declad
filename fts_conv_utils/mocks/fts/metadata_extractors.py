@@ -1,3 +1,4 @@
+import os
 
 class Command_value:
     def __init__(self, output ):
@@ -8,7 +9,10 @@ class Command_value:
         return self
 
 class MetadataExtractorRunCommand:
-    def _runCommand(cmd, arg):
-        with os.popen(f"{cmd} {arg}") as cmdout:
+    def _runCommand(self, *args):
+        full_cmd = ' '.join(args)
+        print(f"running: {full_cmd}")
+        with os.popen(full_cmd) as cmdout:
              res = cmdout.read()
-        return Command_value(res)
+        #return Command_value(res)
+        return res

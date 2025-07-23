@@ -1,5 +1,3 @@
-from twisted.internet import defer
-from twisted.python import log
 
 import json
 import fts.util
@@ -11,28 +9,26 @@ class NovaNTuple(fts.metadata_extractors.MetadataExtractorRunCommand):
   name = "nova-ntuple"
   _concurrent_limit = 2
 
-  @defer.inlineCallbacks
   def getMetadataFile(self, filestate):
     jsonName = filestate.getLocalFilePath()
 
     if not '.root' in jsonName: return
     jsonName = jsonName.replace('.root', '.json')
 
-    exists = yield self._checkmdfile(jsonName, filestate)
+    exists = self._checkmdfile(jsonName, filestate)
     if not exists: return
-    defer.returnValue(jsonName)
+    return jsonName
 
-  @defer.inlineCallbacks
   def extract(self, filestate, *args, **kwargs):
     group = 'nova'
     try:
-      jsonfilename = yield self.getMetadataFile(filestate)
+      jsonfilename = self.getMetadataFile(filestate)
       if jsonfilename:
         md = json.load(open(jsonfilename))
-        defer.returnValue(md)
+        return md
     except Exception as e:
       print(e)
       print("Exception reading json file")
 
 
-novaNTupleExtractor = NovaNTuple()
+extractor = NovaNTuple()

@@ -1,7 +1,5 @@
 # Extract the metadata for HDF5 files.
 
-from twisted.internet import defer, threads
-from twisted.python import log
 
 import fts.util
 import fts.metadata_extractors
@@ -21,28 +19,26 @@ class NovaH5(fts.metadata_extractors.MetadataExtractorRunCommand):
     name = "nova-h5"
     _concurrent_limit = 4
 
-    @defer.inlineCallbacks
     def getMetadataFile(self, filestate):
         jsonName = filestate.getLocalFilePath()
 
         if not '.h5' in jsonName: return
         jsonName = jsonName.replace('.h5', '.json')
 
-        exists = yield self._checkmdfile(jsonName, filestate)
+        exists = self._checkmdfile(jsonName, filestate)
         if not exists: return
-        defer.returnValue(jsonName)
+        return jsonName
 
-    @defer.inlineCallbacks
     def extract( self, filestate, *args, **kwargs):
         group = 'nova'
         try:
-            jsonfilename = yield self.getMetadataFile(filestate)
+            jsonfilename = self.getMetadataFile(filestate)
             if jsonfilename:
-                jsonfile = yield threads.deferToThread(open, jsonfilename)
+                jsonfile = threads.deferToThread(open, jsonfilename)
                 md = _createMetadata(filestate.getFileName(), group, filestate.getFileSize())
                 log.msg("Using metadata file %s for %s" % (jsonfilename, filestate.getFileName()))
                 if md:
-                    defer.returnValue(md)
+                    return md
 
         except Exception as e:
             print(e)
@@ -50,6 +46,6 @@ class NovaH5(fts.metadata_extractors.MetadataExtractorRunCommand):
 
         # find the executable on the path
         md = _createMetadata(filestate.getFileName(), group, filestate.getFileSize())
-        defer.returnValue(md)
+        return md
 
 novaH5Extractor = NovaH5()

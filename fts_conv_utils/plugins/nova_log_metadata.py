@@ -1,5 +1,3 @@
-from twisted.internet import defer, task, reactor
-from twisted.python import log
 import sys
 import time
 
@@ -16,7 +14,6 @@ class NovaLogExtractor(fts.metadata_extractors.MetadataExtractorRunCommand):
   _concurrent_limit = 4
   group = 'nova'
 
-  @defer.inlineCallbacks
   def extract( self, filestate, *args, **kwargs):
     logName = os.path.basename(filestate.getLocalFilePath())
     if logName.endswith('.log'):
@@ -39,7 +36,7 @@ class NovaLogExtractor(fts.metadata_extractors.MetadataExtractorRunCommand):
         else:
             # really want to check if the file is in the db, but fts.sam doesn't
             # provide a suitable interface
-            locs = yield fts.sam.getLocations(rootName)
+            locs = fts.sam.getLocations(rootName)
             if locs is not None: break
         if time.time() > starttime + 3600*6:
             raise fts.metadata_extractors.MetadataExtractError("%s needs parent %s, but it is not in the SAM DB" % (logName, rootName))
@@ -56,4 +53,4 @@ class NovaLogExtractor(fts.metadata_extractors.MetadataExtractorRunCommand):
       'parents': [{'file_name': rootName}]
     } )
 
-novaLogExtractor = NovaLogExtractor()
+extractor = NovaLogExtractor()

@@ -44,6 +44,7 @@ class Converter:
         for ft in self.filetypes:
             sect = f"filetype {ft}"
             extractor = self.config[sect].get("metadata-extractor","").strip()
+            self.untwist(extractor)
 
             if not extractor in self.extractor_filepatterns:
                 self.extractor_filepatterns[extractor] = set()
@@ -267,6 +268,29 @@ path_comp_map = {}
         }
         with open("declad.yaml", "w") as outf:
             outf.write(yaml.dump(cfg))
+
+    def untwist(self, plugin_name):
+        # the Plugins have evil twisted bits in them; prune those
+        # out so they work as straight callable routines
+
+        if not plugin_name:
+            return
+
+        plugin_dir = self.config["main"]["plugin-paths"]
+        plugin_file = plugin_name.replace("-","_") + "_metadata.py"
+        if os.path.exists(f"plugins/{plugin_file}"):
+            # already did this one
+            return
+        with open(f"{plugin_dir}/{plugin_file}", "r") as fin:
+             with open(f"plugins/{plugin_file}", "w") as fout:
+                 for line in fin.readlines():
+                     if re.match("(from.*twist.*import)|( *@defer\\.)", line):
+                          continue
+                     line = re.sub("= *yield ", "= ", line)
+                     line = re.sub("defer.returnValue\((.*)\)", "return \\1", line)
+                     line = re.sub("^[a-zA-Z]*Extractor = ", "extractor = ", line)
+                     line = re.sub("\\.iteritems\\(", ".items(", line)
+                     fout.write(line)
 
 
 def main():

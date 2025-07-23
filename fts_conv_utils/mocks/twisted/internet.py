@@ -18,8 +18,10 @@ class defer:
      def inlineCallbacks(f):
          """ decorator that calls something which uses returnValue, below """
 
-         def g(*args):
-             f(*args)
+         async def g(*args):
+             print("about to await")
+             await f(*args)
+             print("don await")
              return defer.retval
          return g
 

@@ -1,0 +1,4 @@
+#!/bin/sh
+cat <<EOF
+{"$1": {"a.x": 5, "b.y": 6, "data_stream":"inplane"}}
+EOF
