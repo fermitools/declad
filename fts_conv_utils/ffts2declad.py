@@ -290,6 +290,8 @@ path_comp_map = {}
                      line = re.sub("defer.returnValue\((.*)\)", "return \\1", line)
                      line = re.sub("^[a-zA-Z]*Extractor = ", "extractor = ", line)
                      line = re.sub("\\.iteritems\\(", ".items(", line)
+                     line = re.sub("yield threads.deferToThread", "threads.deferToThread", line)
+                     line = re.sub("threads.deferToThread\\(([^,]*),*(.*)\\)", "\\1(\\2)", line)
                      fout.write(line)
 
 

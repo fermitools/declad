@@ -34,7 +34,7 @@ class NovaH5(fts.metadata_extractors.MetadataExtractorRunCommand):
         try:
             jsonfilename = self.getMetadataFile(filestate)
             if jsonfilename:
-                jsonfile = threads.deferToThread(open, jsonfilename)
+                jsonfile = open( jsonfilename)
                 md = _createMetadata(filestate.getFileName(), group, filestate.getFileSize())
                 log.msg("Using metadata file %s for %s" % (jsonfilename, filestate.getFileName()))
                 if md:
