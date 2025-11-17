@@ -13,6 +13,7 @@ the metadata file appears, Declad will proceed to decalare and upload
 the files as normal.
 
 Several points:
+
 * This is only supported in the “local” scanner
 configuration, we do not support remote / xrootd metadata extraction.
 * There is one metadata extractor script allowed per Declad instance, if
@@ -33,7 +34,7 @@ is given.
 Example script (the referred to scripts “sam_cleanup” and “log_metadata”
 are left as an exercise) :
 
-::
+.. code-block:: bash
 
    #!/bin/sh
 

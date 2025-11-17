@@ -17,6 +17,7 @@ Metadata Files
 
 Although Declad will declare files to both SAM and Metacat/Rucio, it
 currently expects metadata files to be:
+
 * named filename.json for a given filename
 * valid JSON format
 * in either SAM’s metadata format, or Metacat’s

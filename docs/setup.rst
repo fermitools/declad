@@ -5,6 +5,7 @@ Overview
 --------
 
 To run a declad instance, you will need:
+
 * an account to run the service under
 * the software and dependencies
 * A suitable credential (like an x509 service/host certificate, and/or a refreshed Scitoken via
@@ -26,7 +27,11 @@ configure the system in a directory in the home account.
 Here at Fermilab we tend to use, for an experiment named “hypot” either
 the “hypotpro” or “hypotraw” account.
 
-As an account who can sudo, do: sudo useradd -u userid accountname
+As an account who can sudo, do: 
+
+  .. code-block:: shell
+
+    $ sudo useradd -u userid accountname
 
 and setup suitable login permissions (.k5login here at Fermilab,
 .ssh/authorized_keys as appropriate elsewhere)
@@ -59,15 +64,13 @@ with pip install –user.
 Installing with Spack
 ~~~~~~~~~~~~~~~~~~~~~
 
-.. raw:: html
+.. code-block:: shell
 
-   <pre>
-   wget https://github.com/FNALssi/fermi-spack-tools/raw/v2_21_0/bin/bootstrap
-   sh bootstrap $HOME/packages
-   . $HOME/packages/setup-env.sh
-   spack buildcache list -al declad
-   spack install --cache-only declad/<i>hash-from-above</i>
-   </pre>
+   $ wget https://github.com/FNALssi/fermi-spack-tools/raw/v2_21_0/bin/bootstrap
+   $ sh bootstrap $HOME/packages
+   $ . $HOME/packages/setup-env.sh
+   $ spack buildcache list -al declad
+   $ spack install --cache-only declad/<i>hash-from-above</i>
 
 If there is an error with the gcc compiler version, edit the
 ``$SPACK_ROOT/etc/spack/compilers.yaml`` file, duplicate the gcc-11.4.1
@@ -87,13 +90,11 @@ account, The two options are described below.
 configure software custom directory
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. raw:: html
+.. code-block:: shell
 
-   <pre>
-   spack cd -i declad
-   cd declad/custom
-   ln -s dune.py __init__.py
-   </pre>
+   $ spack cd -i declad
+   $ cd declad/custom
+   $ ln -s dune.py __init__.py
 
 create a “custom” directory
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -102,27 +103,22 @@ If you’re planning to make site-local customizations, you want to do
 this. Somewhere you’re putting such things make a “custom” directory,
 and copy the custom/dune.py from the spack package, like:
 
-.. raw:: html
+.. code-block:: shell
 
-   <pre>
-     mkdir custom
-     cp $(spack location -i declad)/custom/dune.py $HOME/custom/dune.py
-     ln -s $HOME/custom/dune.py $HOME/custom/__init__.py
-   </pre>
+     $ mkdir custom
+     $ cp $(spack location -i declad)/custom/dune.py $HOME/custom/dune.py
+     $ ln -s $HOME/custom/dune.py $HOME/custom/__init__.py
 
 create a rucio config
 ---------------------
 
-.. raw:: html
+.. code-block:: shell
 
-   <pre>
-   mkdir -p $HOME/rucio_config/etc
-   vi $HOME/rucio_config/etc/rucio.cfg
-   </pre>
+   $ mkdir -p $HOME/rucio_config/etc
+   $ vi $HOME/rucio_config/etc/rucio.cfg
 
-.. raw:: html
+.. code-block:: ini
 
-   <pre>
    [client]
    rucio_host = https://<i>xyz</i>-rucio.fnal.gov
    auth_host = https://<i>xyz</i>-rucio.fnal.gov
@@ -132,7 +128,6 @@ create a rucio config
    auth_type = x509
    client_cert = /home/<i>xyz</i>pro/certs/<i>xyz</i>-declad-cert.pem 
    client_key  = /home/<i>xyz</i>pro/certs/<i>xyz</i>-declad-key.pem
-   </pre>
 
 This of course needs to be edited for your experiment’s rucio service
 and home directory.
@@ -145,9 +140,8 @@ your spack area or virtualenv to find the software, and set the
 environment variables to access the rucio and metacat instances,
 something like:
 
-.. raw:: html
+.. code-block:: bash
 
-   <pre>
    #!/bin/sh
 
    # find the software
@@ -168,25 +162,23 @@ something like:
 
    nohup declad.py -dc declad_config.yaml  < /dev/null > logs/nohup.out 2>&1 &
    echo $! > logs/declad.pid
-   </pre>
 
 Of course, for “dver” above, use the version number for declad that you
 installed earlier.
 
 Oh, and also
 
-.. raw:: html
+.. code-block:: shell
 
-   <pre>mkdir $HOME/logs</pre>
+   $ mkdir $HOME/logs
 
 so we have a place for all this output, and/or possibly symlink it to
 some scratch partition where you have more room for logs.
 
 For symmetry, you may also want a “stop.sh”, like:
 
-.. raw:: html
+.. code-block:: bash
 
-   <pre>
    #!/bin/sh
 
    if [ -r logs/declad.pid ]
@@ -194,7 +186,6 @@ For symmetry, you may also want a “stop.sh”, like:
        kill $(&lt;logs/declad.pid)
        rm logs/declad.pid
    fi
-   </pre>
 
 But it isn’t strictly necessary.
 
@@ -203,9 +194,7 @@ cronjob to refresh metacat authentication
 
 create a script metacat_refresh.sh
 
-.. raw:: html
-
-   <pre>
+.. code-block:: bash
 
    # if you're using a proxy from that cert to authenticate file transfers refresh it:
    grid-proxy-init -cert $HOME/certs/<i>xyz</i>-declad-cert.pem -key $HOME/certs/<i>xyz</i>-declad-key.pem
@@ -220,23 +209,17 @@ create a script metacat_refresh.sh
    export METACAT_AUTH_SERVER_URL=<i>https://metacat.host:authport/auth/xyz</i>
    metacat auth login -m x509 -c $HOME/certs/<i>xyz</i>-declad-cert.pem -k $HOME/certs/<i>xyz</i>-declad-key.pem <i>xyz</i>pro
 
-   </pre>
-
 And a cron entry for the refresh, and probably an entry to start the
 service
 
-.. raw:: html
+.. code-block:: shell
 
-   <pre>
-   crontab -e 
-   </pre>
+   $ crontab -e 
 
-.. raw:: html
+.. code-block:: bash
 
-   <pre>
    0 * * * * /path/to/metacat_refresh.sh > logs/refresh.out 2>&1
    @reboot /path/to/metacat_refresh.sh > logs/refresh.out 2>&1 ; /path/to/start.sh > logs/start.out 2>& 1
-   </pre>
 
 And finally, if you’re using token authentication older versions of
 xrdcp for file transfers, you’ll need some wrappers in $HOME/bin to get
@@ -244,9 +227,8 @@ BEARER_TOKEN set to the current token, which look like:
 
 bin/xrdcp:
 
-.. raw:: html
+.. code-block:: bash
 
-   <pre>
    #!/bin/sh
 
    # run xrdcp, but with token authentication...
@@ -256,7 +238,6 @@ bin/xrdcp:
 
    /usr/bin/xrdcp "$@"
 
-   </pre>
 
 and similarly for xrdfs. These combined with having $HOME/bin in your
 PATH in the start script, will have declad use these wrappers to set
@@ -266,17 +247,16 @@ Test authentication setup
 -------------------------
 
 Now test the authentication setup:
+
 * run the refresh script
 * use the METACAT_SERVER_URL and RUCIO_HOME values in your start script to test:
 
-.. raw:: html
+.. code-block:: shell
 
-   <pre> 
-   . $HOME/packages/setup-env.sh
-   spack load declad@<i>2.0.4</i>
-   METACAT_SERVER_URL=<i>value_from_start.sh</i>  metacat auth whoami
-   RUCIO_HOME=<i>value_from_start.sh</i> rucio whoami
-   </pre>
+   $ . $HOME/packages/setup-env.sh
+   $ spack load declad@<i>2.0.4</i>
+   $ METACAT_SERVER_URL=<i>value_from_start.sh</i>  metacat auth whoami
+   $ RUCIO_HOME=<i>value_from_start.sh</i> rucio whoami
 
 (Use the version of declad you installed in the “spack load”) Both
 should give your experiment production account name back.
@@ -296,9 +276,7 @@ Example contents below:
 for xrootd remote dropbox
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. raw:: html
-
-   <pre>
+.. code-block:: yaml
 
    # Format of Declad config file as concluded from perusing sources.
 
@@ -359,7 +337,7 @@ for xrootd remote dropbox
      parse_re:               "^(?P<type>[a-z-])\S+\s+\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\s+(?P<size>\d+)\s+(?P<path>\S+)$"                                      
                                                         # regexp for "ls" / "xrdfs" ls  output                                          
      filename_patterns:                                 # filename pattern(s) to watch for
-     filename_pattern: *.hdf5
+     filename_pattern: \*.hdf5
 
    web_gui:
      prefix:                                            # website url prefix for web monitor
@@ -373,14 +351,11 @@ for xrootd remote dropbox
    #        interval: 10
    #        bin: 60
 
-   </pre>
 
 for local directory dropbox
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. raw:: html
-
-   <pre>
+.. code-block:: yaml
 
    # Format of Declad config file as concluded from perusing sources.
 
@@ -455,8 +430,6 @@ for local directory dropbox
    #        interval: 10
    #        bin: 60
 
-   </pre>
-
 Alternate installation
 ----------------------
 
@@ -465,20 +438,21 @@ Installing with a virtualenv/or with pip install –user
 
 if using virtualenv, first do a
 
-.. raw:: html
+.. code-block:: shell
 
-   <pre>python -m venv $HOME/venvs/declad</pre>
+   $ python -m venv $HOME/venvs/declad
 
 and activate the environment.
 
-.. raw:: html
+.. code-block:: shell
 
-   <pre>. $HOME/venvs/declad/bin/activate</pre>
+   $ . $HOME/venvs/declad/bin/activate
 
 if not using virutalenv, do ``pip install --user`` instead of just
 ``pip install``, below.
 
 Then pip install the dependencies:
+
 * webpie
 * metacat
 * rucio-clients
