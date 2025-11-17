@@ -14,15 +14,9 @@ the files as normal.
 
 Several points:
 
-* This is only supported in the “local” scanner
-configuration, we do not support remote / xrootd metadata extraction.
-* There is one metadata extractor script allowed per Declad instance, if
-there are multiple types of files that need metadata generated/extracted
-the one script must handle all those types.
-* There is a delay (between
-one and two scanner intervals) before the extractor is called, to see if
-a metadata file is going to show up in the dropbox, so one may want to
-adjust the scanner intervals appropriately.
+* This is only supported in the “local” scanner configuration, we do not support remote / xrootd metadata extraction.
+* There is one metadata extractor script allowed per Declad instance, if there are multiple types of files that need metadata generated/extracted the one script must handle all those types.
+* There is a delay (between one and two scanner intervals) before the extractor is called, to see if a metadata file is going to show up in the dropbox, so one may want to adjust the scanner intervals appropriately.
 
 Script Information
 ------------------

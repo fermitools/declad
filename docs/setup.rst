@@ -8,9 +8,7 @@ To run a declad instance, you will need:
 
 * an account to run the service under
 * the software and dependencies
-* A suitable credential (like an x509 service/host certificate, and/or a refreshed Scitoken via
-the `Managed Token Service <https://fifewiki.fnal.gov/wiki/Managed_Tokens_Service>`__) for
-authentication
+* A suitable credential (like an x509 service/host certificate, and/or a refreshed Scitoken via the `Managed Token Service <https://fifewiki.fnal.gov/wiki/Managed_Tokens_Service>`__) for authentication
 * a working rucio installation with suitable client configuration file
 * a working metacat installation with suitable client configuration
 * a cron job or similar to refresh metacat tokens
@@ -29,9 +27,9 @@ the “hypotpro” or “hypotraw” account.
 
 As an account who can sudo, do: 
 
-  .. code-block:: shell
+.. code-block:: shell
 
-    $ sudo useradd -u userid accountname
+   $ sudo useradd -u userid accountname
 
 and setup suitable login permissions (.k5login here at Fermilab,
 .ssh/authorized_keys as appropriate elsewhere)
@@ -120,14 +118,14 @@ create a rucio config
 .. code-block:: ini
 
    [client]
-   rucio_host = https://<i>xyz</i>-rucio.fnal.gov
-   auth_host = https://<i>xyz</i>-rucio.fnal.gov
+   rucio_host = https://<xyz>-rucio.fnal.gov
+   auth_host = https://<xyz>-rucio.fnal.gov
 
    ca_cert = /etc/grid-security/certificates
-   account = <i>xyz</i>pro
+   account = <xyz>pro
    auth_type = x509
-   client_cert = /home/<i>xyz</i>pro/certs/<i>xyz</i>-declad-cert.pem 
-   client_key  = /home/<i>xyz</i>pro/certs/<i>xyz</i>-declad-key.pem
+   client_cert = /home/<xyz>pro/certs/<xyz>-declad-cert.pem 
+   client_key  = /home/<xyz>pro/certs/<xyz>-declad-key.pem
 
 This of course needs to be edited for your experiment’s rucio service
 and home directory.
@@ -149,11 +147,11 @@ something like:
    #
    # or
    . $HOME/packages/setup-env.sh
-   dver=<i>2.0.4</i>
+   dver=<2.0.4>
    spack load declad@$dver
 
    # config for MetaCat and Rucio
-   export METACAT_SERVER_URL=<i>https://metacat.server:port/instance/app</i>
+   export METACAT_SERVER_URL=<https://metacat.server:port/instance/app>
    export RUCIO_HOME=$HOME/rucio_config
 
    # find our $HOME/bin executables and $HOME/custom python files first
@@ -197,17 +195,17 @@ create a script metacat_refresh.sh
 .. code-block:: bash
 
    # if you're using a proxy from that cert to authenticate file transfers refresh it:
-   grid-proxy-init -cert $HOME/certs/<i>xyz</i>-declad-cert.pem -key $HOME/certs/<i>xyz</i>-declad-key.pem
+   grid-proxy-init -cert $HOME/certs/<xyz>-declad-cert.pem -key $HOME/certs/<xyz>-declad-key.pem
 
    # if you're using a managed token to authenticate file transfers, refresh that
-   export HTGETTOKENOPTS="--credkey=<i>xyz</i>pro/managedtokens/fifeutilgpvm01.fnal.gov"
-   htgettoken -i <i>xyz</i> -r production -a htvaultprod.fnal.gov
+   export HTGETTOKENOPTS="--credkey=<xyz>pro/managedtokens/fifeutilgpvm01.fnal.gov"
+   htgettoken -i <xyz> -r production -a htvaultprod.fnal.gov
 
    # now refresh your metacat login token, either using your cert, or your managed token.
 
-   export METACAT_SERVER_URL=<i>https://metacat.host:port/xyz_meta_prod/app</i>
-   export METACAT_AUTH_SERVER_URL=<i>https://metacat.host:authport/auth/xyz</i>
-   metacat auth login -m x509 -c $HOME/certs/<i>xyz</i>-declad-cert.pem -k $HOME/certs/<i>xyz</i>-declad-key.pem <i>xyz</i>pro
+   export METACAT_SERVER_URL=<https://metacat.host:port/xyz_meta_prod/app>
+   export METACAT_AUTH_SERVER_URL=<https://metacat.host:authport/auth/xyz>
+   metacat auth login -m x509 -c $HOME/certs/<xyz>-declad-cert.pem -k $HOME/certs/<xyz>-declad-key.pem <xyz>pro
 
 And a cron entry for the refresh, and probably an entry to start the
 service
@@ -254,9 +252,9 @@ Now test the authentication setup:
 .. code-block:: shell
 
    $ . $HOME/packages/setup-env.sh
-   $ spack load declad@<i>2.0.4</i>
-   $ METACAT_SERVER_URL=<i>value_from_start.sh</i>  metacat auth whoami
-   $ RUCIO_HOME=<i>value_from_start.sh</i> rucio whoami
+   $ spack load declad@<2.0.4>
+   $ METACAT_SERVER_URL=<value_from_start.sh>  metacat auth whoami
+   $ RUCIO_HOME=<value_from_start.sh> rucio whoami
 
 (Use the version of declad you installed in the “spack load”) Both
 should give your experiment production account name back.

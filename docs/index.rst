@@ -6,6 +6,6 @@ DeclaD Documentation
    :caiption: Contents:
 
   setup
-  updating
+  update
   using
   metadata_extractors
