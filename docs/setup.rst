@@ -4,17 +4,18 @@ Setting up Declad
 Overview
 --------
 
-To run a declad instance, you will need: \* an account to run the
-service under \* the software and dependencies \* A suitable credential
-(like an x509 service/host certificate, and/or a refreshed Scitoken via
-the `Managed Token
-Service <https://fifewiki.fnal.gov/wiki/Managed_Tokens_Service>`__) for
-authentication \* a working rucio installation with suitable client
-configuration file \* a working metacat installation with suitable
-client configuration \* a cron job or similar to refresh metacat tokens
-\* a declad config file
+To run a declad instance, you will need:
+* an account to run the service under
+* the software and dependencies
+* A suitable credential (like an x509 service/host certificate, and/or a refreshed Scitoken via
+the `Managed Token Service <https://fifewiki.fnal.gov/wiki/Managed_Tokens_Service>`__) for
+authentication
+* a working rucio installation with suitable client configuration file
+* a working metacat installation with suitable client configuration
+* a cron job or similar to refresh metacat tokens
+* a declad config file
 
-This document will describe each of these in more detail
+This document will describe each of these in more detail.
 
 An account
 ----------
@@ -264,8 +265,9 @@ BEARER_TOKEN to the latest token contents each time it gets run.
 Test authentication setup
 -------------------------
 
-Now test the authentication setup: \* run the refresh script \* use the
-METACAT_SERVER_URL and RUCIO_HOME values in your start script to test:
+Now test the authentication setup:
+* run the refresh script
+* use the METACAT_SERVER_URL and RUCIO_HOME values in your start script to test:
 
 .. raw:: html
 
@@ -476,8 +478,11 @@ and activate the environment.
 if not using virutalenv, do ``pip install --user`` instead of just
 ``pip install``, below.
 
-Then pip install the dependencies: \* webpie \* metacat \* rucio-clients
-\* py-jinja2
+Then pip install the dependencies:
+* webpie
+* metacat
+* rucio-clients
+* py-jinja2
 
 Declad itself isn’t currently pip-installable, you can clone it from
 https://github.com/fermitools/declad.git and symlink the “declad”

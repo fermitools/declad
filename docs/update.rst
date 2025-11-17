@@ -2,8 +2,9 @@ Updating Declad
 ===============
 
 When updating Declad to a new version with Spack, there are two updates
-to do: \* Updating the recipe repository for the new version \*
-Installing the binary package
+to do:
+* Updating the recipe repository for the new version
+* Installing the binary package
 
 Updating the recipe repository
 ------------------------------
