@@ -3,7 +3,7 @@ Using Declad
 
 Once Declad has been configured to monitor a dropbox, to use Declad, all
 you need to do is place files, along with matching metadata files (but
-see :doc:`Metadata Extractors`), in the dropbox directory. It will
+see :doc:`Metadata Extractors<metadata_extractors>`), in the dropbox directory. It will
 periodically scan the dropbox directory, transfer files to their
 configured destination, and declare them to the configured data
 management systems.

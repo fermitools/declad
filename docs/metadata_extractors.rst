@@ -4,18 +4,18 @@ Metadata Extractors
 Overview
 --------
 
-With version 2.2.0 of Declad, we add support for metadata extractor
+With version 2.2.0 of DeclaD, we add support for metadata extractor
 scripts. This allows data files to be dropped into the dropbox directory
 **without** matching .json metadata files, at which point Declad will
 call a metadata extractor script (if one is configured) on those files
 to have that script generate metadata files for those data files. Once
-the metadata file appears, Declad will proceed to decalare and upload
+the metadata file appears, DeclaD will proceed to decalare and upload
 the files as normal.
 
 Several points:
 
-* This is only supported in the “local” scanner configuration, we do not support remote / xrootd metadata extraction.
-* There is one metadata extractor script allowed per Declad instance, if there are multiple types of files that need metadata generated/extracted the one script must handle all those types.
+* This is only supported in the “local” scanner configuration; we do not support remote / xrootd metadata extraction.
+* There is one metadata extractor script allowed per DeclaD instance, if there are multiple types of files that need metadata generated/extracted the one script must handle all those types.
 * There is a delay (between one and two scanner intervals) before the extractor is called, to see if a metadata file is going to show up in the dropbox, so one may want to adjust the scanner intervals appropriately.
 
 Script Information
