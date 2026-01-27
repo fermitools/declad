@@ -186,8 +186,8 @@ class MoverTask(Task, Logged):
         if not isinstance(file_size, int) or file_size <= 0:
             return self.quarantine(f"Invalid file size in metadata: {file_size}")
        
-        min_file_size = int(self.Config.get("min_file_size"))
-        if min_file_size is not None and file_size < min_file_size:
+        min_file_size = int(self.Config.get("min_file_size",0))
+        if min_file_size != 0 and file_size < min_file_size:
             return self.quarantine(f"File size is lower than configured minimum size: {file_size} < {min_file_size}")
 
         if file_size != self.FileDesc.Size:
