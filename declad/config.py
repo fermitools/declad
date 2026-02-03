@@ -37,6 +37,7 @@ class Config(dict):
         "rel_path_function",
         "rel_path_pattern",
         "retry_cooldown",
+        "required_metadata",
         "rucio.activity",
         "rucio.dataset_did_template",
         "rucio.declare_to_rucio",
