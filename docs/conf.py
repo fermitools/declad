@@ -19,8 +19,6 @@ print(sys.path)
 # -- Project information -----------------------------------------------------
 
 project = 'DeclaD'
-copyright = '2023, Igor Mandrichenko'
-author = 'Igor Mandrichenko'
 
 
 # -- General configuration ---------------------------------------------------
@@ -59,7 +57,8 @@ html_theme_options = {
     "repository_url": "https://github.com/fermitools/declad",
     "use_repository_button": True,
     "navigation_depth": 4,  # how many levels of nested headers show in sidebar
-    "collapse_navigation": False
+    "collapse_navigation": False,
+    "footer_content_items": []
 }
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
