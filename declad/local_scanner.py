@@ -102,21 +102,34 @@ class LocalScanner(PyThread, Logged):
                     #    print(f)
 
                     out_files = {}
+                    seen_json_files = set()
 
                     for desc in files:
+                        # Guard: Skip files ending with .json when evaluating as data files (prevents .json.json recursion)
+                        if desc.Name.endswith(self.MetaSuffix):
+                            if any(fnmatch.fnmatch(desc.Name, pattern) for pattern in self.MetadataPatterns) and desc.Size > 0:
+                                seen_json_files.add(desc.Name)
+                                # Process as metadata inline
+                                data_name = desc.Name[:-len(self.MetaSuffix)]
+                                data_desc = data_files.get(data_name)
+                                if data_desc is not None:
+                                    out_files[data_name] = data_desc
+                                else:
+                                    metadata_files.add(data_name)
+                            # Skip all JSON files from data processing
+                            continue
+                        
                         if any(fnmatch.fnmatch(desc.Name, pattern) for pattern in self.FilenamePatterns):
                             meta_name = desc.Name + self.MetaSuffix
                             if desc.Name in metadata_files:
                                 out_files[desc.Name] = desc
                             else:
                                 data_files[desc.Name] = desc
-                        elif any(fnmatch.fnmatch(desc.Name, pattern) for pattern in self.MetadataPatterns) and desc.Size > 0:
-                            data_name = desc.Name[:-len(self.MetaSuffix)]
-                            data_desc = data_files.get(data_name)
-                            if data_desc is not None:
-                                out_files[data_name] = data_desc
-                            else:
-                                metadata_files.add(data_name)
+
+                    # Guard: Warn about orphaned JSON files (not matching the metadata sidecar pattern)
+                    for desc in files:
+                        if desc.Name.endswith(self.MetaSuffix) and desc.Name not in seen_json_files:
+                            self.error(f"Orphaned JSON file skipped (doesn't match metadata sidecar pattern): {desc.Name}")
 
                     self.log("found %d matching files" % (len(out_files),))
                     self.log("found %d data files" % (len(data_files),))
