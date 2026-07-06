@@ -54,8 +54,8 @@ def convert_fts(comp, metadata):
         pick = comp[pos+1:-1]
         pos2 = pick.find(' div ')
         if pos2 > 0:
-            pickchar1 = int(comp[pos+1:pos2])
-            pickchar2 = pickchar1 + int(comp[pos2+5:-1])
+            pickchar1 = int(pick[:pos2])
+            pickchar2 = pickchar1 + int(pick[pos2+5:-1])
         else:
             pickchar1 = int(comp[pos+1:-1])
             pickchar2 = pickchar1+1
@@ -67,7 +67,12 @@ def convert_fts(comp, metadata):
         comp = comp[0:pos]
         
 
+    if comp.find("}") < 0 and comp.find("${") >= 0:
+       # close bracket if we lost it
+       comp = comp + "}"
+
     comp = comp.replace('${','%(').replace('}',')s')
+    print(f"got {comp=}")
     val = comp % metadata
     # this is assuming the fields are in the formatting metadata... we might need the
     # SAM metadata? thats annoying...
@@ -76,7 +81,7 @@ def convert_fts(comp, metadata):
         val = str(int(float(val) / float(divby)))
 
     if pickchar1:
-        val = val[pickhar1:pickchar2]
+        val = val[pickchar1:pickchar2]
 
     return val
 

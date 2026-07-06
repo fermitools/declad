@@ -212,7 +212,7 @@ path_comp_map = {}
             cffd.write("        for comp in path_comp_map[i]:\n")
             cffd.write("            if path_comp_map[i][comp].match(metadata[name]):\n")
             cffd.write("                fcomp = convert_fts(comp, metadata)\n")
-            cffd.write("                res[f'comp_{i}'] = comp\n")
+            cffd.write("                res[f'comp_{i}'] = fcomp\n")
             cffd.write("                break\n")
             cffd.write("    return res\n")
 
@@ -277,6 +277,9 @@ path_comp_map = {}
         if not plugin_name:
             return
 
+        if not "plugin-paths" in self.config["main"]:
+            return
+
         plugin_dir = self.config["main"]["plugin-paths"]
         plugin_file = plugin_name.replace("-","_") + "_metadata.py"
         if os.path.exists(f"plugins/{plugin_file}"):
@@ -301,6 +304,9 @@ def main():
     aparser.add_argument("ffts_file")
     aparser.add_argument("--dest-dir", default=".")
     args = aparser.parse_args()
+
+    if not os.path.exists(args.dest_dir):
+        os.makedirs(args.dest_dir)
 
     cf = Converter(args.ffts_file, args.dest_dir)
     cf.cross_reference()
