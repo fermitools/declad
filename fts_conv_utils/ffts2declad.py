@@ -8,7 +8,8 @@ import socket
 import yaml
 
 class Converter:
-    def __init__(self, ffts_file):
+    def __init__(self, ffts_file, dest_dir):
+        self.dest_dir = dest_dir
         self.config = configparser.ConfigParser(inline_comment_prefixes=("#",))
         self.config.read([ffts_file])
 
@@ -112,7 +113,7 @@ class Converter:
         #print("common src prefix: ", self.common_src_prefix )
 
     def write_metadata_extractor(self):
-        mdout = "extractor.py"
+        mdout = f"{self.dest_dir}/extractor.py"
         with open(mdout, "w") as mdefd:
             mdefd.write("from declad_utils import wildcard_list_to_re, use_extractor\n")
             mdefd.write("import sys\n\n")
@@ -131,7 +132,7 @@ class Converter:
         os.system(f"black {mdout}||true")
 
     def write_custom_file(self):
-        cfout = "custom.py"
+        cfout = f"{self.dest_dir}/custom.py"
         with open(cfout, "w") as cffd:
 
             cffd.write("""
@@ -266,7 +267,7 @@ path_comp_map = {}
                 "port": 8443,
             },
         }
-        with open("declad.yaml", "w") as outf:
+        with open(f"{self.destdir}/declad.yaml", "w") as outf:
             outf.write(yaml.dump(cfg))
 
     def untwist(self, plugin_name):
@@ -282,7 +283,7 @@ path_comp_map = {}
             # already did this one
             return
         with open(f"{plugin_dir}/{plugin_file}", "r") as fin:
-             with open(f"plugins/{plugin_file}", "w") as fout:
+             with open(f"{self.dest_dir}/plugins/{plugin_file}", "w") as fout:
                  for line in fin.readlines():
                      if re.match("(from.*twist.*import)|( *@defer\\.)", line):
                           continue
@@ -298,14 +299,14 @@ path_comp_map = {}
 def main():
     aparser = argparse.ArgumentParser()
     aparser.add_argument("ffts_file")
+    aparser.add_argument("--dest-dir", default=".")
     args = aparser.parse_args()
 
-    cf = Converter(args.ffts_file)
+    cf = Converter(args.ffts_file, args.dest_dir)
     cf.cross_reference()
     cf.write_metadata_extractor()
     cf.write_declad_cfg()
     cf.write_custom_file()
-
 
 if __name__ == "__main__":
     main()
