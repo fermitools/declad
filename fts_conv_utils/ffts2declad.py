@@ -267,7 +267,7 @@ path_comp_map = {}
                 "port": 8443,
             },
         }
-        with open(f"{self.destdir}/declad.yaml", "w") as outf:
+        with open(f"{self.dest_dir}/declad.yaml", "w") as outf:
             outf.write(yaml.dump(cfg))
 
     def untwist(self, plugin_name):
