@@ -8,8 +8,8 @@ import re
 from pythreader import PyThread, synchronized, Primitive, Task, TaskQueue
 from tools import runCommand
 import json, hashlib, traceback, time, os, pprint, textwrap
-import rucio_client, metacat_client, samweb_client
-from samweb_client import SAMDeclarationError
+import rucio_client, metacat_client, d_samweb_client
+from d_samweb_client import SAMDeclarationError
 from logs import Logged
 from xrootd_scanner import XRootDScanner
 from lfn2pfn import lfn2pfn
@@ -327,7 +327,7 @@ class MoverTask(Task, Logged):
         
         do_declare_to_sam = self.Config.get("declare_to_sam", True)
         if do_declare_to_sam:
-            sclient = samweb_client.client(self.SAMConfig)
+            sclient = d_samweb_client.client(self.SAMConfig)
         else:
             sclient = None
 
