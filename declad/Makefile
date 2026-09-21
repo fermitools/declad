@@ -9,7 +9,7 @@ TAR_FILE = $(TAR_DIR)/$(PRODUCT)_$(VERSION).tar
 
 FILES = config.py declad.py file_descriptor.py fts3client.py \
         graphite_interface.py historydb.py lfn2pfn.py local_scanner.py \
-        metacat_client.py mover.py rucio_client.py samweb_client.py \
+        metacat_client.py mover.py rucio_client.py d_samweb_client.py \
         scanner.py tools.py version.py web_server.py xrootd_scanner.py \
         config_sample.yaml meta_sample.json
 
