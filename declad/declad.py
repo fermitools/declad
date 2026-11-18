@@ -28,11 +28,11 @@ class DeclaD(PyThread, Logged):
             else:
                 sname = "Scanner"
 
-            scanner_type = config[sname].get("type")
+            scanner_type = config[sname.lower()].get("type")
             if scanner_type == "local":
-                self.Scanners[sname] = LocalScanner(self.MoverManager, config, history_db, name=sname))
+                self.Scanners[sname] = LocalScanner(self.MoverManager, config, history_db, name=sname)
             elif scanner_type == "xrootd":
-                self.Scanners[sname] Scanner(self.MoverManager, config, name=sname)
+                self.Scanners[sname] = Scanner(self.MoverManager, config, name=sname)
             else:
                 raise ValueError(f"Unknown or unspecified scanner type: {scanner_type}")
         self.Stop = False
@@ -81,14 +81,14 @@ class DeclaD(PyThread, Logged):
 
     def ls_input(self):
         res = []
-        for s in self.scanners:
+        for s in self.Scanners:
             res.extend(self.Scanners[s].ls_input())
         return res
 
     def input_location(self):
         servers = []
         locations = []
-        for s in self.scanners:
+        for s in self.Scanners:
             servers.append( self.Scanners[s].Server )
             locations.append( self.Scanners[s].Location )
         return (servers, locations)
