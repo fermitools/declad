@@ -17,9 +17,9 @@ class LocalScanner(PyThread, Logged):
 
     def __init__(self, receiver, config, historydb = None):
         PyThread.__init__(self, daemon=True, name="Scanner")
-        Logged.__init__(self, f"Scanner")
+        Logged.__init__(self, name)
         self.Receiver = receiver
-        scan_config = config["scanner"]
+        scan_config = config[name.lower()]
         self.Historydb = historydb
         self.Interval = scan_config.get("interval", self.DefaultInterval)
         self.Location = scan_config["location"]

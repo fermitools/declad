@@ -12,9 +12,9 @@ class Scanner(PyThread, Logged):
 
     def __init__(self, receiver, config):
         PyThread.__init__(self, daemon=True, name="Scanner")
-        Logged.__init__(self, f"Scanner")
+        Logged.__init__(self, name)
         self.Receiver = receiver
-        scan_config = config["scanner"]
+        scan_config = config[name.lower()]
         self.Interval = scan_config.get("interval", self.DefaultInterval)
         self.Server, self.Location = scan_config["server"], scan_config["location"]
         self.XScanner = XRootDScanner(self.Server, scan_config)

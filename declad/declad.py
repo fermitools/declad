@@ -20,13 +20,20 @@ class DeclaD(PyThread, Logged):
         self.Config = config
         self.HistoryDB = history_db
         self.MoverManager = Manager(config, self.HistoryDB)
-        scanner_type = config["scanner"].get("type")
-        if scanner_type == "local":
-            self.Scanner = LocalScanner(self.MoverManager, config, history_db)
-        elif scanner_type == "xrootd":
-            self.Scanner = Scanner(self.MoverManager, config)
-        else:
-            raise ValueError(f"Unknown or unspecified scanner type: {scanner_type}")
+        slist = config.get("Scanner_list", [""])
+        for sname in slist:
+            if sname:
+                sname= "Scanner_{sname}"
+            else:
+                sname = "Scanner"
+
+            scanner_type = config[sname].get("type")
+            if scanner_type == "local":
+                self.Scanner = LocalScanner(self.MoverManager, config, history_db, name=sname)
+            elif scanner_type == "xrootd":
+                self.Scanner = Scanner(self.MoverManager, config, name=sname)
+            else:
+                raise ValueError(f"Unknown or unspecified scanner type: {scanner_type}")
         self.Stop = False
         
     def signal_handler(self, signum, frame):
