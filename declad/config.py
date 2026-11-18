@@ -63,6 +63,7 @@ class Config(dict):
         "scanner.filename_pattern",
         "scanner.server",
         "scanner.timeout",
+        "scanners",
         "source_root_path",
         "source_server",
         "transfer_timeout",
@@ -83,8 +84,12 @@ class Config(dict):
         unknown_keys= set()
         for k,v in cfg.items():
             if isinstance(v,dict):
+                if k.startswith("scanner_"):
+                    check_k = "scanner"
+                else:
+                    check_k = k
                 for k2, v2 in v.items():
-                    if not f"{k}.{k2}" in Config._valid_keys:
+                    if not f"{check_k}.{k2}" in Config._valid_keys:
                         unknown_keys.add( f"{k}.{k2}" )
             else:
                 if not k in Config._valid_keys:

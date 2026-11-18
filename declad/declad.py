@@ -20,11 +20,11 @@ class DeclaD(PyThread, Logged):
         self.Config = config
         self.HistoryDB = history_db
         self.MoverManager = Manager(config, self.HistoryDB)
-        slist = config.get("Scanner_list", [""])
+        slist = config.get("scanners", [""])
         self.Scanners = {}
         for sname in slist:
             if sname:
-                sname= "Scanner_{sname}"
+                sname= f"Scanner_{sname}"
             else:
                 sname = "Scanner"
 
@@ -66,7 +66,7 @@ class DeclaD(PyThread, Logged):
         return list(self.HistoryDB.historySince(limit=limit))       # already reversed
 
     def quarantined(self):
-        files, error = self.MoverManager.quarantined()		# file descriptors
+        files, error = self.MoverManager.quarantined()          # file descriptors
         if files:
             status_records = self.HistoryDB.latest_records_bulk([d.Name for d in files])
             for d in files:
@@ -80,10 +80,13 @@ class DeclaD(PyThread, Logged):
         return self.MoverManager.task(name)
 
     def ls_input(self):
-        res = []
+        res_files = []
+        res_error = None
         for s in self.Scanners:
-            res.extend(self.Scanners[s].ls_input())
-        return res
+            files, error = self.Scanners[s].ls_input()
+            res_files.extend(files)
+            res_error = res_error or error
+        return res_files, res_error
 
     def input_location(self):
         servers = []

@@ -29,10 +29,11 @@ class MoverTask(Task, Logged):
     last_created_rucio_dataset = None 
     last_created_metacat_dataset = None 
     
-    def __init__(self, config, filedesc):
+    def __init__(self, config, filedesc, scanner_name="scanner"):
         Task.__init__(self, filedesc)
         Logged.__init__(self, name=f"MoverTask[{filedesc.Name}]")
 
+        self.ScannerName = scanner_name
         self.FileDesc = filedesc
         self.Config = config
         self.MetaSuffix = config.get("meta_suffix", ".json")
@@ -104,7 +105,7 @@ class MoverTask(Task, Logged):
         
     def get_file_size(self, server, path):
         if self.TransferProto == 'root':
-            scanner = XRootDScanner(server, self.Config["scanner"])
+            scanner = XRootDScanner(server, self.Config[self.ScannerName])
             return scanner.getFileSize(path)
         elif self.TransferProto == 'https':
             stat_command = f"gfal-stat https://{server}/{path}"
@@ -533,8 +534,8 @@ class MoverTask(Task, Logged):
 
         do_remove_sources = self.Config.get("remove_sources", True)
 
-        rmcommand = self.Config["delete_command_template"]	\
-            .replace("$server", self.SourceServer)	\
+        rmcommand = self.Config["delete_command_template"]      \
+            .replace("$server", self.SourceServer)      \
             .replace("$path", meta_path)
         if do_remove_sources:
             ret, output = runCommand(rmcommand, self.TransferTimeout, self.debug)
@@ -543,8 +544,8 @@ class MoverTask(Task, Logged):
         else:
             self.debug("would remove source metadata:", rmcommand)
 
-        rmcommand = self.Config["delete_command_template"]	\
-            .replace("$server", self.SourceServer)	\
+        rmcommand = self.Config["delete_command_template"]      \
+            .replace("$server", self.SourceServer)      \
             .replace("$path", src_data_path)
         if do_remove_sources:
             ret, output = runCommand(rmcommand, self.TransferTimeout, self.debug)
@@ -560,7 +561,7 @@ class MoverTask(Task, Logged):
     def donewith(self, src_data_path):
         """ tell system buffer cache we"re done with file """
 
-        if self.Config["scanner"].get("type") == "local":
+        if self.Config[self.ScannerName].get("type") == "local":
             self.log(f"calling fadvise w/ dontneed for {src_data_path}")
             try:
                 with open(src_data_path) as pf:
@@ -648,7 +649,7 @@ class Manager(PyThread, Logged):
         self.TaskKeepInterval = int(config.get("keep_interval", 24*3600))
         self.LowWaterMark = config.get("low_water_mark", self.DEFAULT_LOW_WATER_MARK)
         self.HistoryDB = history_db
-        self.NextRetry = {}	                # name -> t
+        self.NextRetry = {}                     # name -> t
         self.RecentTasks = {}               # name -> task
         self.Stop = False
 
@@ -666,7 +667,7 @@ class Manager(PyThread, Logged):
         scanner = XRootDScanner(self.Config["source_server"], self.Config["scanner"])
         error = None
         files = []
-        try:    files = scanner.scan(qlocation)		# returns file descriptors
+        try:    files = scanner.scan(qlocation)         # returns file descriptors
         except Exception as e:
             error = str(e)
         return files or [], error
@@ -684,7 +685,7 @@ class Manager(PyThread, Logged):
         return len(self.TaskQueue) < self.LowWaterMark
 
     @synchronized
-    def add_files(self, files_dict):
+    def add_files(self, files_dict, scanner_name=""):
         #
         # WARNING: this can cause a deadlock of the queue capacity is limited
         #
@@ -701,7 +702,7 @@ class Manager(PyThread, Logged):
         for name, filedesc in files_dict.items():
             name = filedesc.Name
             if name not in in_progress and name not in self.NextRetry:
-                task = MoverTask(self.Config, filedesc)     # retry the file: create new task with new FileDesc to reflect fresh scan results
+                task = MoverTask(self.Config, filedesc,scanner_name=scanner_name)     # retry the file: create new task with new FileDesc to reflect fresh scan results
                 task.KeepUntil = now + self.TaskKeepInterval
                 self.RecentTasks[name] = task
                 self.NextRetry[name] = now + self.RetryCooldown
