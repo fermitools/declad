@@ -21,6 +21,7 @@ class DeclaD(PyThread, Logged):
         self.HistoryDB = history_db
         self.MoverManager = Manager(config, self.HistoryDB)
         slist = config.get("Scanner_list", [""])
+        self.Scanners = {}
         for sname in slist:
             if sname:
                 sname= "Scanner_{sname}"
@@ -29,9 +30,9 @@ class DeclaD(PyThread, Logged):
 
             scanner_type = config[sname].get("type")
             if scanner_type == "local":
-                self.Scanner = LocalScanner(self.MoverManager, config, history_db, name=sname)
+                self.Scanners[sname] = LocalScanner(self.MoverManager, config, history_db, name=sname))
             elif scanner_type == "xrootd":
-                self.Scanner = Scanner(self.MoverManager, config, name=sname)
+                self.Scanners[sname] Scanner(self.MoverManager, config, name=sname)
             else:
                 raise ValueError(f"Unknown or unspecified scanner type: {scanner_type}")
         self.Stop = False
@@ -47,7 +48,8 @@ class DeclaD(PyThread, Logged):
 
     def run(self):
         self.HistoryDB.start()
-        self.Scanner.start()
+        for sname in self.Scanners:
+            self.Scanners[sname].start()
         self.MoverManager.start()
         while not self.Stop:
             self.sleep(100)
@@ -78,10 +80,18 @@ class DeclaD(PyThread, Logged):
         return self.MoverManager.task(name)
 
     def ls_input(self):
-        return self.Scanner.ls_input()
+        res = []
+        for s in self.scanners:
+            res.extend(self.Scanners[s].ls_input())
+        return res
 
     def input_location(self):
-        return self.Scanner.Server, self.Scanner.Location
+        servers = []
+        locations = []
+        for s in self.scanners:
+            servers.append( self.Scanners[s].Server )
+            locations.append( self.Scanners[s].Location )
+        return (servers, locations)
         
 class ThreadMonitor(PyThread, Logged):
 

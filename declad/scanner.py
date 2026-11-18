@@ -10,8 +10,8 @@ class Scanner(PyThread, Logged):
     MetaSuffix = ".json"
     DefaultInterval = 300
 
-    def __init__(self, receiver, config):
-        PyThread.__init__(self, daemon=True, name="Scanner")
+    def __init__(self, receiver, config, name="Scanner"):
+        PyThread.__init__(self, daemon=True, name=name)
         Logged.__init__(self, name)
         self.Receiver = receiver
         scan_config = config[name.lower()]
