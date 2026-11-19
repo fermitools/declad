@@ -22,17 +22,17 @@ class DeclaD(PyThread, Logged):
         self.MoverManager = Manager(config, self.HistoryDB)
         slist = config.get("scanners", [""])
         self.Scanners = {}
-        for sname in slist:
-            if sname:
-                sname= f"Scanner_{sname}"
+        for scanner_name in slist:
+            if scanner_name:
+                scanner_name= f"scanner_{scanner_name}"
             else:
-                sname = "Scanner"
+                scanner_name = "scanner"
 
-            scanner_type = config[sname.lower()].get("type")
+            scanner_type = config[scanner_name].get("type")
             if scanner_type == "local":
-                self.Scanners[sname] = LocalScanner(self.MoverManager, config, history_db, name=sname)
+                self.Scanners[scanner_name] = LocalScanner(self.MoverManager, config, history_db, name=scanner_name)
             elif scanner_type == "xrootd":
-                self.Scanners[sname] = Scanner(self.MoverManager, config, name=sname)
+                self.Scanners[scanner_name] = Scanner(self.MoverManager, config, name=scanner_name)
             else:
                 raise ValueError(f"Unknown or unspecified scanner type: {scanner_type}")
         self.Stop = False
@@ -48,8 +48,8 @@ class DeclaD(PyThread, Logged):
 
     def run(self):
         self.HistoryDB.start()
-        for sname in self.Scanners:
-            self.Scanners[sname].start()
+        for scanner_name in self.Scanners:
+            self.Scanners[scanner_name].start()
         self.MoverManager.start()
         while not self.Stop:
             self.sleep(100)

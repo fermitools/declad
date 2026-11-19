@@ -15,12 +15,12 @@ class LocalScanner(PyThread, Logged):
     # -rw-r--r-- 1 ivm3 ivm3 1228 Mar 22 16:52 /home/ivm3/token
     DefaultParseRE = r"(?P<type>[a-z-])\S+\s+\d+\s+\S+\s+\S+\s+(?P<size>\d+)\s+\S+\s+\d+\s+\S+\s+(?P<path>\S+)$"
 
-    def __init__(self, receiver, config, historydb = None, name="Scanner"):
+    def __init__(self, receiver, config, historydb = None, name="scanner"):
         PyThread.__init__(self, daemon=True, name=name)
         Logged.__init__(self, name)
         self.ScannerName = name
         self.Receiver = receiver
-        scan_config = config[name.lower()]
+        scan_config = config[name]
         self.Historydb = historydb
         self.Interval = scan_config.get("interval", self.DefaultInterval)
         self.Location = scan_config["location"]

@@ -42,14 +42,14 @@ class MoverTask(Task, Logged):
         self.Activity = self.RucioConfig.get("activity", "")
         self.SAMConfig = config.get("samweb", {})
         self.QuarantineLocation = config.get("quarantine_location")
-        self.SourceServer = config[scanner_name.lower()].get("server",None) or config.get("source_server",None)
+        self.SourceServer = config[scanner_name].get("server",None) or config.get("source_server",None)
         self.DestServer = config.get("destination_server") or self.SourceServer
         self.TransferProto = config.get("transfer_proto","root")
 
         self.log(f"MoverTask.__init__ {scanner_name=} {config.get(scanner_name,None)=}")
         
         # source and destination paths in xrootd namespace
-        self.SrcRootPath = config[scanner_name.lower()].get("path",None) or config.get("source_root_path",None)
+        self.SrcRootPath = config[scanner_name].get("path",None) or config.get("source_root_path",None)
         self.DstRootPath = config["destination_root_path"]
         
         self.TransferTimeout = config.get("transfer_timeout", 120)
@@ -560,7 +560,7 @@ class MoverTask(Task, Logged):
     def donewith(self, src_data_path):
         """ tell system buffer cache we"re done with file """
 
-        if self.Config[self.ScannerName.lower()].get("type") == "local":
+        if self.Config[self.ScannerName].get("type") == "local":
             self.log(f"calling fadvise w/ dontneed for {src_data_path}")
             try:
                 with open(src_data_path) as pf:
