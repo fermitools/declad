@@ -136,7 +136,6 @@ class LocalScanner(PyThread, Logged):
                     self.log("found %d data files" % (len(data_files),))
             
                     if out_files:
-                        self.log(f"sending files: {out_files=}")
                         self.Receiver.add_files(out_files, scanner_name=self.ScannerName)
 
                     if self.MetadataExtractor:

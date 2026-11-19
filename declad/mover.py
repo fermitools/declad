@@ -46,8 +46,6 @@ class MoverTask(Task, Logged):
         self.DestServer = config.get("destination_server") or self.SourceServer
         self.TransferProto = config.get("transfer_proto","root")
 
-        self.log(f"MoverTask.__init__ {scanner_name=} {config.get(scanner_name,None)=}")
-        
         # source and destination paths in xrootd namespace
         self.SrcRootPath = config[scanner_name].get("path",None) or config.get("source_root_path",None)
         self.DstRootPath = config["destination_root_path"]
@@ -111,14 +109,10 @@ class MoverTask(Task, Logged):
         stat_command = f"unset PYTHONHOME PYTHONPATH LD_LIBRARY_PATH GFAL_PLUGIN_DIR GFAL_CONFIG_DIR; gfal-stat {self.TransferProto}://{server}{path}"
         self.log(f"Running {stat_command}")
         status, out = runCommand(stat_command, self.TransferTimeout, self.debug)
-        self.log(f"Got {status=} {out=}")
         lines = [x.strip() for x in out.split("\n")]
-        self.log(f"Got {len(lines)} lines:")
         for line in lines:
-            self.log(f"stat line: {line}")
             if line.find("Size:") >= 0:
                 fields = re.split(r"\s+", line)
-                self.log(f"found size {fields[1]}")
                 return int(fields[1])
 
     def run(self):
@@ -711,8 +705,9 @@ class Manager(PyThread, Logged):
         for name, filedesc in files_dict.items():
             name = filedesc.Name
             if name not in in_progress and name not in self.NextRetry:
-                self.log(f"add_files: starting MoverTask {filedesc=} {scanner_name=}")
-                task = MoverTask(self.Config, filedesc,scanner_name=scanner_name)     # retry the file: create new task with new FileDesc to reflect fresh scan results
+                # retry the file: create new task with new FileDesc 
+                #    to reflect fresh scan results
+                task = MoverTask(self.Config, filedesc,scanner_name=scanner_name)
                 task.KeepUntil = now + self.TaskKeepInterval
                 self.RecentTasks[name] = task
                 self.NextRetry[name] = now + self.RetryCooldown
