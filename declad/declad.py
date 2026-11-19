@@ -93,12 +93,10 @@ class DeclaD(PyThread, Logged):
         return res_files, res_error
 
     def input_location(self):
-        servers = []
-        locations = []
+        res = []
         for s in self.Scanners:
-            servers.append( self.Scanners[s].Server )
-            locations.append( self.Scanners[s].Location )
-        return (servers, locations)
+            res.append((s, self.Scanners[s].Server, self.Scanners[s].Location))
+        return res
         
 class ThreadMonitor(PyThread, Logged):
 

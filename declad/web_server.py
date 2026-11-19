@@ -38,9 +38,8 @@ class Handler(WPHandler):
         files, error = self.App.ls_input()
         if files:
             files = sorted(files, key=lambda d: d.Name)
-        server, location = self.App.input_location()
-        return self.render_to_response("input_files.html", files=files, error=error,
-            server=server, location=location)
+        loclist = self.App.input_location()
+        return self.render_to_response("input_files.html", files=files, error=error, loclist = loclist)
 
     def config(self, request, relpath, **args):
         return self.render_to_response("config.html", 

@@ -667,7 +667,7 @@ class Manager(PyThread, Logged):
                 errorsum += f"Quarantine not configured in {sname} "
                 continue
 
-            scanner = XRootDScanner(self.Config[sname].get("server","localhost"), self.Config[sname])
+            scanner = XRootDScanner(self.Config[sname].get("server","localhost"), self.Config[sname], scanner_name=sname)
             try:    
                 files.extend(scanner.scan(qlocation))   
             except Exception as e:
