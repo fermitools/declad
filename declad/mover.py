@@ -595,7 +595,7 @@ class MoverTask(Task, Logged):
         self.donewith(src_path)
         sname = self.FileDesc.ScannerName
         qlocation = self.Config[sname].get("quarantine_location","") or self.Config.get("quarantine_location","")
-        if :
+        if qlocation:
 
             # quarantine the metadata file
             meta_path = src_path + self.MetaSuffix
