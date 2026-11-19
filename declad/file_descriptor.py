@@ -19,7 +19,7 @@ class FileDescriptor(object):
         return location + "/" + self.RelPath
 
     def __str__(self):
-        return "%s:%s:%s(%s)" % (self.Server, self.Location, self.RelPath, self.Size)
+        return "<FileDescriptor>%s:%s:%s//%s(%s)" % (self.Server, self.Location, self.RelPath, self.Name, self.Size)
         
     __repr__ = __str__
 

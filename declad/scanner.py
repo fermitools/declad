@@ -13,6 +13,7 @@ class Scanner(PyThread, Logged):
     def __init__(self, receiver, config, name="Scanner"):
         PyThread.__init__(self, daemon=True, name=name)
         Logged.__init__(self, name)
+        self.ScannerName = name
         self.Receiver = receiver
         scan_config = config[name.lower()]
         self.Interval = scan_config.get("interval", self.DefaultInterval)
@@ -82,7 +83,7 @@ class Scanner(PyThread, Logged):
                 #self.debug("sending files:")
                 #for fn, desc in out_files.items():
                 #    self.debug(desc.Path, fn)
-                self.Receiver.add_files(out_files)
+                self.Receiver.add_files(out_files, scanner_name=self.ScannerName)
 
             if not self.Stop:
                 self.sleep(self.Interval)

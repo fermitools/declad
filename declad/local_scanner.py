@@ -18,6 +18,7 @@ class LocalScanner(PyThread, Logged):
     def __init__(self, receiver, config, historydb = None, name="Scanner"):
         PyThread.__init__(self, daemon=True, name=name)
         Logged.__init__(self, name)
+        self.ScannerName = name
         self.Receiver = receiver
         scan_config = config[name.lower()]
         self.Historydb = historydb
@@ -135,10 +136,8 @@ class LocalScanner(PyThread, Logged):
                     self.log("found %d data files" % (len(data_files),))
             
                     if out_files:
-                        #self.debug("sending files:")
-                        #for fn, desc in out_files.items():
-                        #    self.debug(desc.Path, fn)
-                        self.Receiver.add_files(out_files)
+                        self.log(f"sending files: {out_files=}")
+                        self.Receiver.add_files(out_files, scanner_name=self.ScannerName)
 
                     if self.MetadataExtractor:
                         # if we have a metadata extractor defined, look for files that have been here

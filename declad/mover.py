@@ -5,6 +5,7 @@ except:
     raise AttributeError("Unable to import 'custom', did you forget to symlink experiment.py as __init__.py?")
 
 import re
+import os
 from pythreader import PyThread, synchronized, Primitive, Task, TaskQueue
 from tools import runCommand
 import json, hashlib, traceback, time, os, pprint, textwrap
@@ -41,12 +42,14 @@ class MoverTask(Task, Logged):
         self.Activity = self.RucioConfig.get("activity", "")
         self.SAMConfig = config.get("samweb", {})
         self.QuarantineLocation = config.get("quarantine_location")
-        self.SourceServer = config["source_server"]
+        self.SourceServer = config[scanner_name.lower()].get("server",None) or config.get("source_server",None)
         self.DestServer = config.get("destination_server") or self.SourceServer
         self.TransferProto = config.get("transfer_proto","root")
+
+        self.log(f"MoverTask.__init__ {scanner_name=} {config.get(scanner_name,None)=}")
         
         # source and destination paths in xrootd namespace
-        self.SrcRootPath = config["source_root_path"]
+        self.SrcRootPath = config[scanner_name.lower()].get("path",None) or config.get("source_root_path",None)
         self.DstRootPath = config["destination_root_path"]
         
         self.TransferTimeout = config.get("transfer_timeout", 120)
@@ -104,21 +107,17 @@ class MoverTask(Task, Logged):
         return '%s/%s/%s/%s' % (scope, hstr[0:2], hstr[2:4], name)
         
     def get_file_size(self, server, path):
-        if self.TransferProto == 'root':
-            scanner = XRootDScanner(server, self.Config[self.ScannerName])
-            return scanner.getFileSize(path)
-        elif self.TransferProto == 'https':
-            stat_command = f"gfal-stat https://{server}/{path}"
-            self.log(f"Running {stat_command}")
-            status, out = runCommand(stat_command, self.TransferTimeout, self.debug)
-            lines = [x.strip() for x in out.split("\n")]
-            for line in lines:
-                self.log(f"stat line: {line}")
-                if line.find("Size:") >= 0:
-                    fields = re.split(r"\s+", line)
-                    self.log(f"found size {fields[1]}")
-                    return int(fields[1])
-        return None
+        # gfal-stat works for everything, file://... root://.. https://... so just use it
+        stat_command = f"gfal-stat https://{server}/{path}"
+        self.log(f"Running {stat_command}")
+        status, out = runCommand(stat_command, self.TransferTimeout, self.debug)
+        lines = [x.strip() for x in out.split("\n")]
+        for line in lines:
+            self.log(f"stat line: {line}")
+            if line.find("Size:") >= 0:
+                fields = re.split(r"\s+", line)
+                self.log(f"found size {fields[1]}")
+                return int(fields[1])
 
     def run(self):
         # import a template_tags() routine if present, otherwise nothing local..
@@ -561,7 +560,7 @@ class MoverTask(Task, Logged):
     def donewith(self, src_data_path):
         """ tell system buffer cache we"re done with file """
 
-        if self.Config[self.ScannerName].get("type") == "local":
+        if self.Config[self.ScannerName.lower()].get("type") == "local":
             self.log(f"calling fadvise w/ dontneed for {src_data_path}")
             try:
                 with open(src_data_path) as pf:
@@ -702,6 +701,7 @@ class Manager(PyThread, Logged):
         for name, filedesc in files_dict.items():
             name = filedesc.Name
             if name not in in_progress and name not in self.NextRetry:
+                self.log(f"add_files: starting MoverTask {filedesc=} {scanner_name=}")
                 task = MoverTask(self.Config, filedesc,scanner_name=scanner_name)     # retry the file: create new task with new FileDesc to reflect fresh scan results
                 task.KeepUntil = now + self.TaskKeepInterval
                 self.RecentTasks[name] = task
