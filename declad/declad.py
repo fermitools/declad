@@ -19,15 +19,19 @@ class DeclaD(PyThread, Logged):
         Logged.__init__(self, "declad")
         self.Config = config
         self.HistoryDB = history_db
-        self.MoverManager = Manager(config, self.HistoryDB)
         slist = config.get("scanners", [""])
-        self.Scanners = {}
+        scanner_names = []
         for scanner_name in slist:
             if scanner_name:
                 scanner_name= f"scanner_{scanner_name}"
             else:
                 scanner_name = "scanner"
+            scanner_names.append(scanner_name)
 
+        self.MoverManager = Manager(config, self.HistoryDB, scanner_names)
+
+        self.Scanners = {}
+        for scanner_name in scanner_names:
             scanner_type = config[scanner_name].get("type")
             if scanner_type == "local":
                 self.Scanners[scanner_name] = LocalScanner(self.MoverManager, config, history_db, name=scanner_name)

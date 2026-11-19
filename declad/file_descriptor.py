@@ -1,8 +1,9 @@
 class FileDescriptor(object):
 
-    def __init__(self, server, location, path, size):
+    def __init__(self, server, location, path, size, scanner_name="scanner"):
         assert path.startswith(location)
         self.Server = server
+        self.ScannerName = scanner_name
         self.Location = location
         if '/' in path:
             self.Name = path.rsplit("/", 1)[-1]

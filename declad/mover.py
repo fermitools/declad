@@ -593,11 +593,13 @@ class MoverTask(Task, Logged):
         src_path = self.FileDesc.path(self.SrcRootPath)
         # tell buffer cache to drop this file
         self.donewith(src_path)
-        if self.QuarantineLocation:
+        sname = self.FileDesc.ScannerName
+        qlocation = self.Config[sname].get("quarantine_location","") or self.Config.get("quarantine_location","")
+        if :
 
             # quarantine the metadata file
             meta_path = src_path + self.MetaSuffix
-            qmeta_path = self.QuarantineLocation + "/" + self.FileDesc.Name + self.MetaSuffix
+            qmeta_path = qlocation + "/" + self.FileDesc.Name + self.MetaSuffix
             if self.FileDesc.Server is None:
                 cmd = "mv %s %s" % (
                     meta_path, qmeta_path
@@ -613,7 +615,7 @@ class MoverTask(Task, Logged):
 
             # quarantine the data file
             path = src_path
-            qpath = self.QuarantineLocation + "/" + self.FileDesc.Name
+            qpath = qlocation + "/" + self.FileDesc.Name
             if self.FileDesc.Server is None:
                 cmd = "mv %s %s" % (
                     path, qpath
@@ -636,9 +638,10 @@ class Manager(PyThread, Logged):
     
     DEFAULT_LOW_WATER_MARK = 5
     
-    def __init__(self, config, history_db):
+    def __init__(self, config, history_db, scanner_list=["scanner"]):
         PyThread.__init__(self, name="Mover")
         Logged.__init__(self, name="Mover")
+        self.ScannerList = scanner_list
         self.Config = config
         capacity = None             # config.get("queue_capacity") possible deadlock otherwise
         max_movers = config.get("max_movers", 10)
@@ -660,16 +663,21 @@ class Manager(PyThread, Logged):
         self.wakeup()
         
     def quarantined(self):
-        qlocation = self.Config.get("quarantine_location")
-        if not qlocation:
-            return [], "Quarantine not configured"
-        scanner = XRootDScanner(self.Config["source_server"], self.Config["scanner"])
-        error = None
         files = []
-        try:    files = scanner.scan(qlocation)         # returns file descriptors
-        except Exception as e:
-            error = str(e)
-        return files or [], error
+        errorsum = ""
+        for sname in self.scanner_list:
+            qlocation = self.Config[sname].get("quarantine_location","") or self.Config.get("quarantine_location","")
+            if not qlocation:
+                errorsum += f"Quarantine not configured in {sname} "
+                continue
+
+            scanner = XRootDScanner(self.Config[sname].get("server",None), self.Config[sname])
+            try:    
+                files.extend(scanner.scan(qlocation))   
+            except Exception as e:
+                errorsum = errorsum + f"Exception on {sname}: {str(e)}"
+
+        return files, errorsum
             
     @synchronized
     def recent_tasks(self):
