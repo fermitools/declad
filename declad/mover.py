@@ -108,10 +108,12 @@ class MoverTask(Task, Logged):
         
     def get_file_size(self, server, path):
         # gfal-stat works for everything, file://... root://.. https://... so just use it
-        stat_command = f"gfal-stat https://{server}/{path}"
+        stat_command = f"unset PYTHONHOME PYTHONPATH LD_LIBRARY_PATH GFAL_PLUGIN_DIR GFAL_CONFIG_DIR; gfal-stat {self.TransferProto}://{server}{path}"
         self.log(f"Running {stat_command}")
         status, out = runCommand(stat_command, self.TransferTimeout, self.debug)
+        self.log(f"Got {status=} {out=}")
         lines = [x.strip() for x in out.split("\n")]
+        self.log(f"Got {len(lines)} lines:")
         for line in lines:
             self.log(f"stat line: {line}")
             if line.find("Size:") >= 0:
@@ -313,7 +315,7 @@ class MoverTask(Task, Logged):
                 return self.failed(f"Can not get file size at the destination: {e}")
 
             if dest_size != file_size:
-                 return self.failed("Transferred file has wrong size")            
+                 return self.failed(f"Transferred file has wrong size {dest_size} vs {file_size}")            
         else:
             self.log("data file already exists at the destination and has correct size. Not overwriting")
 
@@ -665,13 +667,13 @@ class Manager(PyThread, Logged):
     def quarantined(self):
         files = []
         errorsum = ""
-        for sname in self.scanner_list:
+        for sname in self.ScannerList:
             qlocation = self.Config[sname].get("quarantine_location","") or self.Config.get("quarantine_location","")
             if not qlocation:
                 errorsum += f"Quarantine not configured in {sname} "
                 continue
 
-            scanner = XRootDScanner(self.Config[sname].get("server",None), self.Config[sname])
+            scanner = XRootDScanner(self.Config[sname].get("server","localhost"), self.Config[sname])
             try:    
                 files.extend(scanner.scan(qlocation))   
             except Exception as e:

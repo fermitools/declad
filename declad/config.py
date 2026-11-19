@@ -54,6 +54,7 @@ class Config(dict):
         "scanner.path",
         "scanner.interval",
         "scanner.location",
+        "scanner.quarantine_location",
         "scanner.ls_command_template",
         "scanner.metadata_extractor_log",
         "scanner.metadata_extractor",
