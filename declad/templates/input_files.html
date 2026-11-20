@@ -4,9 +4,11 @@
 
 <h1>Input Location Scan</h1>
 
-<table class="form">
-	<tr><th>Server:</th><td>{{server}}</td></tr>
-	<tr><th>Location:</th><td>{{location}}</td></tr>
+<table >
+	<tr><th>Scanner</th><th>Server</th><th>Location</th></tr>
+        {% for loc in loclist %}
+        <tr><td>{{loc[0]}}</td><td>{{loc[1]}}</td><td>{{loc[2]}}</td></tr>
+        {% endfor %}
 </table>
 
 {% if error %}
@@ -16,10 +18,11 @@
 
 	<table class="data">
 	    <tr>
-			<th>Name</th><th>Size</th>
+			<th>Scanner</th><th>Name</th><th>Size</th>
 	    </tr>
 	    {% for desc in files %}
 		<tr>
+                    <td>{{desc.ScannerName}}</td>
 		    <td>{{desc.Name}}</td>
 		    <td>{{desc.Size|pretty_size}}</td>
 		</tr>

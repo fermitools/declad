@@ -9,10 +9,10 @@ def to_str(b):
 def runCommand(cmd, timeout=None, debug=None):
     if timeout is not None and timeout < 0: timeout = None
     if debug:
-        debug("runCommand: %s" % (cmd,))
+        debug(f"runCommand: {timeout=} {cmd=}") 
     status, out, err = ShellCommand.execute(cmd, timeout=timeout)
-    #if debug:
-    #    debug("%s [%s] [%s]" % (status, out, err))
+    if debug:
+        debug(f"{status=} {out=} {err=}")
         
     if not out: out = err
     

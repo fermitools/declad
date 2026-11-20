@@ -5,6 +5,7 @@ except:
     raise AttributeError("Unable to import 'custom', did you forget to symlink experiment.py as __init__.py?")
 
 import re
+import os
 from pythreader import PyThread, synchronized, Primitive, Task, TaskQueue
 from tools import runCommand
 import json, hashlib, traceback, time, os, pprint, textwrap
@@ -29,10 +30,11 @@ class MoverTask(Task, Logged):
     last_created_rucio_dataset = None 
     last_created_metacat_dataset = None 
     
-    def __init__(self, config, filedesc):
+    def __init__(self, config, filedesc, scanner_name="scanner"):
         Task.__init__(self, filedesc)
         Logged.__init__(self, name=f"MoverTask[{filedesc.Name}]")
 
+        self.ScannerName = scanner_name
         self.FileDesc = filedesc
         self.Config = config
         self.MetaSuffix = config.get("meta_suffix", ".json")
@@ -40,12 +42,12 @@ class MoverTask(Task, Logged):
         self.Activity = self.RucioConfig.get("activity", "")
         self.SAMConfig = config.get("samweb", {})
         self.QuarantineLocation = config.get("quarantine_location")
-        self.SourceServer = config["source_server"]
+        self.SourceServer = config[scanner_name].get("server",None) or config.get("source_server",None)
         self.DestServer = config.get("destination_server") or self.SourceServer
         self.TransferProto = config.get("transfer_proto","root")
-        
+
         # source and destination paths in xrootd namespace
-        self.SrcRootPath = config["source_root_path"]
+        self.SrcRootPath = config[scanner_name].get("path",None) or config.get("source_root_path",None)
         self.DstRootPath = config["destination_root_path"]
         
         self.TransferTimeout = config.get("transfer_timeout", 120)
@@ -103,21 +105,15 @@ class MoverTask(Task, Logged):
         return '%s/%s/%s/%s' % (scope, hstr[0:2], hstr[2:4], name)
         
     def get_file_size(self, server, path):
-        if self.TransferProto == 'root':
-            scanner = XRootDScanner(server, self.Config["scanner"])
-            return scanner.getFileSize(path)
-        elif self.TransferProto == 'https':
-            stat_command = f"gfal-stat https://{server}/{path}"
-            self.log(f"Running {stat_command}")
-            status, out = runCommand(stat_command, self.TransferTimeout, self.debug)
-            lines = [x.strip() for x in out.split("\n")]
-            for line in lines:
-                self.log(f"stat line: {line}")
-                if line.find("Size:") >= 0:
-                    fields = re.split(r"\s+", line)
-                    self.log(f"found size {fields[1]}")
-                    return int(fields[1])
-        return None
+        # gfal-stat works for everything, file://... root://.. https://... so just use it
+        stat_command = f"unset PYTHONHOME PYTHONPATH LD_LIBRARY_PATH GFAL_PLUGIN_DIR GFAL_CONFIG_DIR; gfal-stat {self.TransferProto}://{server}{path}"
+        self.log(f"Running {stat_command}")
+        status, out = runCommand(stat_command, self.TransferTimeout, self.debug)
+        lines = [x.strip() for x in out.split("\n")]
+        for line in lines:
+            if line.find("Size:") >= 0:
+                fields = re.split(r"\s+", line)
+                return int(fields[1])
 
     def run(self):
         # import a template_tags() routine if present, otherwise nothing local..
@@ -313,7 +309,7 @@ class MoverTask(Task, Logged):
                 return self.failed(f"Can not get file size at the destination: {e}")
 
             if dest_size != file_size:
-                 return self.failed("Transferred file has wrong size")            
+                 return self.failed(f"Transferred file has wrong size {dest_size} vs {file_size}")            
         else:
             self.log("data file already exists at the destination and has correct size. Not overwriting")
 
@@ -533,8 +529,8 @@ class MoverTask(Task, Logged):
 
         do_remove_sources = self.Config.get("remove_sources", True)
 
-        rmcommand = self.Config["delete_command_template"]	\
-            .replace("$server", self.SourceServer)	\
+        rmcommand = self.Config["delete_command_template"]      \
+            .replace("$server", self.SourceServer)      \
             .replace("$path", meta_path)
         if do_remove_sources:
             ret, output = runCommand(rmcommand, self.TransferTimeout, self.debug)
@@ -543,8 +539,8 @@ class MoverTask(Task, Logged):
         else:
             self.debug("would remove source metadata:", rmcommand)
 
-        rmcommand = self.Config["delete_command_template"]	\
-            .replace("$server", self.SourceServer)	\
+        rmcommand = self.Config["delete_command_template"]      \
+            .replace("$server", self.SourceServer)      \
             .replace("$path", src_data_path)
         if do_remove_sources:
             ret, output = runCommand(rmcommand, self.TransferTimeout, self.debug)
@@ -560,7 +556,7 @@ class MoverTask(Task, Logged):
     def donewith(self, src_data_path):
         """ tell system buffer cache we"re done with file """
 
-        if self.Config["scanner"].get("type") == "local":
+        if self.Config[self.ScannerName].get("type") == "local":
             self.log(f"calling fadvise w/ dontneed for {src_data_path}")
             try:
                 with open(src_data_path) as pf:
@@ -593,11 +589,13 @@ class MoverTask(Task, Logged):
         src_path = self.FileDesc.path(self.SrcRootPath)
         # tell buffer cache to drop this file
         self.donewith(src_path)
-        if self.QuarantineLocation:
+        sname = self.FileDesc.ScannerName
+        qlocation = self.Config[sname].get("quarantine_location","") or self.Config.get("quarantine_location","")
+        if qlocation:
 
             # quarantine the metadata file
             meta_path = src_path + self.MetaSuffix
-            qmeta_path = self.QuarantineLocation + "/" + self.FileDesc.Name + self.MetaSuffix
+            qmeta_path = qlocation + "/" + self.FileDesc.Name + self.MetaSuffix
             if self.FileDesc.Server is None:
                 cmd = "mv %s %s" % (
                     meta_path, qmeta_path
@@ -613,7 +611,7 @@ class MoverTask(Task, Logged):
 
             # quarantine the data file
             path = src_path
-            qpath = self.QuarantineLocation + "/" + self.FileDesc.Name
+            qpath = qlocation + "/" + self.FileDesc.Name
             if self.FileDesc.Server is None:
                 cmd = "mv %s %s" % (
                     path, qpath
@@ -636,9 +634,10 @@ class Manager(PyThread, Logged):
     
     DEFAULT_LOW_WATER_MARK = 5
     
-    def __init__(self, config, history_db):
+    def __init__(self, config, history_db, scanner_list=["scanner"]):
         PyThread.__init__(self, name="Mover")
         Logged.__init__(self, name="Mover")
+        self.ScannerList = scanner_list
         self.Config = config
         capacity = None             # config.get("queue_capacity") possible deadlock otherwise
         max_movers = config.get("max_movers", 10)
@@ -648,7 +647,7 @@ class Manager(PyThread, Logged):
         self.TaskKeepInterval = int(config.get("keep_interval", 24*3600))
         self.LowWaterMark = config.get("low_water_mark", self.DEFAULT_LOW_WATER_MARK)
         self.HistoryDB = history_db
-        self.NextRetry = {}	                # name -> t
+        self.NextRetry = {}                    # name -> t
         self.RecentTasks = {}               # name -> task
         self.Stop = False
 
@@ -660,16 +659,21 @@ class Manager(PyThread, Logged):
         self.wakeup()
         
     def quarantined(self):
-        qlocation = self.Config.get("quarantine_location")
-        if not qlocation:
-            return [], "Quarantine not configured"
-        scanner = XRootDScanner(self.Config["source_server"], self.Config["scanner"])
-        error = None
         files = []
-        try:    files = scanner.scan(qlocation)		# returns file descriptors
-        except Exception as e:
-            error = str(e)
-        return files or [], error
+        errorsum = ""
+        for sname in self.ScannerList:
+            qlocation = self.Config[sname].get("quarantine_location","") or self.Config.get("quarantine_location","")
+            if not qlocation:
+                errorsum += f"Quarantine not configured in {sname} "
+                continue
+
+            scanner = XRootDScanner(self.Config[sname].get("server","localhost"), self.Config[sname], scanner_name=sname)
+            try:    
+                files.extend(scanner.scan(qlocation))   
+            except Exception as e:
+                errorsum = errorsum + f"Exception on {sname}: {str(e)}"
+
+        return files, errorsum
             
     @synchronized
     def recent_tasks(self):
@@ -684,7 +688,7 @@ class Manager(PyThread, Logged):
         return len(self.TaskQueue) < self.LowWaterMark
 
     @synchronized
-    def add_files(self, files_dict):
+    def add_files(self, files_dict, scanner_name=""):
         #
         # WARNING: this can cause a deadlock of the queue capacity is limited
         #
@@ -701,7 +705,9 @@ class Manager(PyThread, Logged):
         for name, filedesc in files_dict.items():
             name = filedesc.Name
             if name not in in_progress and name not in self.NextRetry:
-                task = MoverTask(self.Config, filedesc)     # retry the file: create new task with new FileDesc to reflect fresh scan results
+                # retry the file: create new task with new FileDesc 
+                #    to reflect fresh scan results
+                task = MoverTask(self.Config, filedesc,scanner_name=scanner_name)
                 task.KeepUntil = now + self.TaskKeepInterval
                 self.RecentTasks[name] = task
                 self.NextRetry[name] = now + self.RetryCooldown

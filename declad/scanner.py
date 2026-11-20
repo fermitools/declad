@@ -10,11 +10,12 @@ class Scanner(PyThread, Logged):
     MetaSuffix = ".json"
     DefaultInterval = 300
 
-    def __init__(self, receiver, config):
-        PyThread.__init__(self, daemon=True, name="Scanner")
-        Logged.__init__(self, f"Scanner")
+    def __init__(self, receiver, config, name="scanner"):
+        PyThread.__init__(self, daemon=True, name=name)
+        Logged.__init__(self, name)
+        self.ScannerName = name
         self.Receiver = receiver
-        scan_config = config["scanner"]
+        scan_config = config[name]
         self.Interval = scan_config.get("interval", self.DefaultInterval)
         self.Server, self.Location = scan_config["server"], scan_config["location"]
         self.XScanner = XRootDScanner(self.Server, scan_config)
@@ -82,7 +83,7 @@ class Scanner(PyThread, Logged):
                 #self.debug("sending files:")
                 #for fn, desc in out_files.items():
                 #    self.debug(desc.Path, fn)
-                self.Receiver.add_files(out_files)
+                self.Receiver.add_files(out_files, scanner_name=self.ScannerName)
 
             if not self.Stop:
                 self.sleep(self.Interval)

@@ -13,8 +13,9 @@ class XRootDScanner(Logged):
     # generic xrootd server
     DefaultParseRE = r"^(?P<type>[a-z-])\S+\s+\S+\s+\S+\s+(?P<size>\d+)\s+\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\s+(?P<path>\S+)$"
 
-    def __init__(self, server, config):
+    def __init__(self, server, config, scanner_name="scanner"):
         Logged.__init__(self, f"XRootDScanner")
+        self.ScannerName = scanner_name
         self.Recursive = False
         self.Server = server
         self.lsCommandTemplate = config["ls_command_template"].replace("$server", self.Server)                
@@ -51,7 +52,7 @@ class XRootDScanner(Logged):
                             if size == 0:
                                 self.debug("Zero file size in:\n   ", l)
                             path = path if path.startswith(location) else location + "/" + path
-                            files.append(FileDescriptor(self.Server, location, path, size))
+                            files.append(FileDescriptor(self.Server, location, path, size, scanner_name=self.ScannerName))
                         elif t == "d": 
                             path = path if path.startswith(location) else location + "/" + path
                             dirs.append(path)

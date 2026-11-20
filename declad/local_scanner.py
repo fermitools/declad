@@ -15,11 +15,12 @@ class LocalScanner(PyThread, Logged):
     # -rw-r--r-- 1 ivm3 ivm3 1228 Mar 22 16:52 /home/ivm3/token
     DefaultParseRE = r"(?P<type>[a-z-])\S+\s+\d+\s+\S+\s+\S+\s+(?P<size>\d+)\s+\S+\s+\d+\s+\S+\s+(?P<path>\S+)$"
 
-    def __init__(self, receiver, config, historydb = None):
-        PyThread.__init__(self, daemon=True, name="Scanner")
-        Logged.__init__(self, f"Scanner")
+    def __init__(self, receiver, config, historydb = None, name="scanner"):
+        PyThread.__init__(self, daemon=True, name=name)
+        Logged.__init__(self, name)
+        self.ScannerName = name
         self.Receiver = receiver
-        scan_config = config["scanner"]
+        scan_config = config[name]
         self.Historydb = historydb
         self.Interval = scan_config.get("interval", self.DefaultInterval)
         self.Location = scan_config["location"]
@@ -62,7 +63,7 @@ class LocalScanner(PyThread, Logged):
                             size = int(m["size"])
                             if size == 0:
                                 self.debug("Zero file size in:\n   ", l)
-                            files.append(FileDescriptor(self.Server, location, path, size))
+                            files.append(FileDescriptor(self.Server, location, path, size, scanner_name=self.ScannerName))
                         elif t == "d": 
                             dirs.append(path)
                         else:
@@ -135,10 +136,7 @@ class LocalScanner(PyThread, Logged):
                     self.log("found %d data files" % (len(data_files),))
             
                     if out_files:
-                        #self.debug("sending files:")
-                        #for fn, desc in out_files.items():
-                        #    self.debug(desc.Path, fn)
-                        self.Receiver.add_files(out_files)
+                        self.Receiver.add_files(out_files, scanner_name=self.ScannerName)
 
                     if self.MetadataExtractor:
                         # if we have a metadata extractor defined, look for files that have been here

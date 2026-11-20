@@ -19,14 +19,26 @@ class DeclaD(PyThread, Logged):
         Logged.__init__(self, "declad")
         self.Config = config
         self.HistoryDB = history_db
-        self.MoverManager = Manager(config, self.HistoryDB)
-        scanner_type = config["scanner"].get("type")
-        if scanner_type == "local":
-            self.Scanner = LocalScanner(self.MoverManager, config, history_db)
-        elif scanner_type == "xrootd":
-            self.Scanner = Scanner(self.MoverManager, config)
-        else:
-            raise ValueError(f"Unknown or unspecified scanner type: {scanner_type}")
+        slist = config.get("scanners", [""])
+        scanner_names = []
+        for scanner_name in slist:
+            if scanner_name:
+                scanner_name= f"scanner_{scanner_name}"
+            else:
+                scanner_name = "scanner"
+            scanner_names.append(scanner_name)
+
+        self.MoverManager = Manager(config, self.HistoryDB, scanner_names)
+
+        self.Scanners = {}
+        for scanner_name in scanner_names:
+            scanner_type = config[scanner_name].get("type")
+            if scanner_type == "local":
+                self.Scanners[scanner_name] = LocalScanner(self.MoverManager, config, history_db, name=scanner_name)
+            elif scanner_type == "xrootd":
+                self.Scanners[scanner_name] = Scanner(self.MoverManager, config, name=scanner_name)
+            else:
+                raise ValueError(f"Unknown or unspecified scanner type: {scanner_type}")
         self.Stop = False
         
     def signal_handler(self, signum, frame):
@@ -40,7 +52,8 @@ class DeclaD(PyThread, Logged):
 
     def run(self):
         self.HistoryDB.start()
-        self.Scanner.start()
+        for scanner_name in self.Scanners:
+            self.Scanners[scanner_name].start()
         self.MoverManager.start()
         while not self.Stop:
             self.sleep(100)
@@ -57,7 +70,7 @@ class DeclaD(PyThread, Logged):
         return list(self.HistoryDB.historySince(limit=limit))       # already reversed
 
     def quarantined(self):
-        files, error = self.MoverManager.quarantined()		# file descriptors
+        files, error = self.MoverManager.quarantined()         # file descriptors
         if files:
             status_records = self.HistoryDB.latest_records_bulk([d.Name for d in files])
             for d in files:
@@ -71,10 +84,19 @@ class DeclaD(PyThread, Logged):
         return self.MoverManager.task(name)
 
     def ls_input(self):
-        return self.Scanner.ls_input()
+        res_files = []
+        res_error = None
+        for s in self.Scanners:
+            files, error = self.Scanners[s].ls_input()
+            res_files.extend(files)
+            res_error = res_error or error
+        return res_files, res_error
 
     def input_location(self):
-        return self.Scanner.Server, self.Scanner.Location
+        res = []
+        for s in self.Scanners:
+            res.append((s, self.Scanners[s].Server, self.Scanners[s].Location))
+        return res
         
 class ThreadMonitor(PyThread, Logged):
 

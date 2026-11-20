@@ -1,8 +1,9 @@
 class FileDescriptor(object):
 
-    def __init__(self, server, location, path, size):
+    def __init__(self, server, location, path, size, scanner_name="scanner"):
         assert path.startswith(location)
         self.Server = server
+        self.ScannerName = scanner_name
         self.Location = location
         if '/' in path:
             self.Name = path.rsplit("/", 1)[-1]
@@ -19,7 +20,7 @@ class FileDescriptor(object):
         return location + "/" + self.RelPath
 
     def __str__(self):
-        return "%s:%s:%s(%s)" % (self.Server, self.Location, self.RelPath, self.Size)
+        return "<FileDescriptor>%s:%s:%s//%s(%s)" % (self.Server, self.Location, self.RelPath, self.Name, self.Size)
         
     __repr__ = __str__
 

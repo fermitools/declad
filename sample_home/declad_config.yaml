@@ -67,7 +67,11 @@ samweb:
   cert: /home/hypotraw/certs/hypot-declad.xxxx.yyy-cert.pem          # user x509 cert for authentication
   key:  /home/hypotraw/certs/hypot-declad.xxxx.yyy-key.pem           # private key for above
 
-scanner:
+scanner_list:
+- local_1
+- local_2
+
+scanner_local_1:
   type: local                                        # scanner type: local or xrootd
   replace_location:                                  # replace Dropbox location with this in path for local scanner
   path: /home/hypotraw/dropbox
@@ -82,6 +86,13 @@ scanner:
     - "*.ddtest"
 #filename_pattern:
 
+scanner_local_2:
+  type: local                                        # scanner type: local or xrootd
+  replace_location:                                  # replace Dropbox location with this in path for local scanner
+  path: /home/hypotraw/dropbox2
+  location: /home/hypotraw/dropbox2
+  ls_command_template: "ls -ln $location"               # with $server and $location 
+  parse_re:              "^(?P<type>[a-z-])\\S+\\s+\\d+\\s+\\d+\\s+\\d+\\s+(?P<size>\\d+)\\s+\\S.{11}\\s(?P<path>\\S+)$"                                          
 web_gui:
   prefix: /declad                                    # website url prefix for web monitor
   site_title: Declaration Daemon                     # website title for web monitor
