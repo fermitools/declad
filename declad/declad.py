@@ -70,7 +70,7 @@ class DeclaD(PyThread, Logged):
         return list(self.HistoryDB.historySince(limit=limit))       # already reversed
 
     def quarantined(self):
-        files, error = self.MoverManager.quarantined()          # file descriptors
+        files, error = self.MoverManager.quarantined()         # file descriptors
         if files:
             status_records = self.HistoryDB.latest_records_bulk([d.Name for d in files])
             for d in files:

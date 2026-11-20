@@ -647,7 +647,7 @@ class Manager(PyThread, Logged):
         self.TaskKeepInterval = int(config.get("keep_interval", 24*3600))
         self.LowWaterMark = config.get("low_water_mark", self.DEFAULT_LOW_WATER_MARK)
         self.HistoryDB = history_db
-        self.NextRetry = {}                     # name -> t
+        self.NextRetry = {}                    # name -> t
         self.RecentTasks = {}               # name -> task
         self.Stop = False
 
